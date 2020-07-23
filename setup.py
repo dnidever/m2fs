@@ -10,5 +10,5 @@ setup(name='m2fs',
       url='https://github.com/dnidever/m2fs',
       packages=['m2fs'],
       scripts=['bin/m2fs_zero'],
-      requires=['numpy','astropy','scipy']
+      requires=['numpy','astropy','scipy','specutils','ccdproc']
 )
