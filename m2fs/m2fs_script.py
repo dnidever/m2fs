@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import astropy
 import dill as pickle
 from astropy import units
@@ -13,7 +15,7 @@ from astropy.modeling import models
 import m2fs_process as m2fs
 import os
 from os import path
-import mycode
+import utils
 import specutils
 from specutils.spectra import Spectrum1D
 import scipy

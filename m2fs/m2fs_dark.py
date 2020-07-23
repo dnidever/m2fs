@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 import astropy
 from astropy import units
@@ -11,7 +13,7 @@ import astropy.units as u
 from astropy.modeling import models
 from ccdproc import Combiner
 import os
-import mycode
+import utils
 import m2fs_process as m2fs
 matplotlib.use('TkAgg')
 

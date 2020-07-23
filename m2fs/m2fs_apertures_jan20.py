@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import astropy
 import dill as pickle
 from astropy import units
