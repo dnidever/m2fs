@@ -13,7 +13,7 @@ from astropy.modeling import models
 from ccdproc import Combiner
 import os
 import mycode
-import m2fs_process as m2fs
+import .process as m2fs
 from astropy.nddata import StdDevUncertainty
 matplotlib.use('TkAgg')
 

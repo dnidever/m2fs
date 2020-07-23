@@ -230,7 +230,7 @@ def plot_boundary(lower_x,lower_y,upper_x,upper_y,reject_x,reject_y,data,fig):
 
 def on_key_boundary(event,args_list):
     import numpy as np
-    import m2fs_process as m2fs
+    #import m2fs_process as m2fs
     from specutils import SpectralRegion
     import astropy.units as u
     from astropy.modeling import models
@@ -284,7 +284,7 @@ def on_key_boundary(event,args_list):
 
 def on_key_find(event,args_list):
     import numpy as np
-    import m2fs_process as m2fs
+    #import m2fs_process as m2fs
     from specutils import SpectralRegion
     import astropy.units as u
     from astropy.modeling import models
@@ -304,7 +304,7 @@ def on_key_find(event,args_list):
             del fit[to_delete[i]-j]
             del realvirtual[to_delete[i]-j]
             j += 1
-        subregion,fit,realvirtual,initial = m2fs.aperture_order(subregion,fit,realvirtual,initial)
+        subregion,fit,realvirtual,initial = aperture_order(subregion,fit,realvirtual,initial)
 
     if event.key=='d':
         aperture_centers = [fit[q].mean for q in range(0,len(fit))]
@@ -317,7 +317,7 @@ def on_key_find(event,args_list):
         del fit[best]
         del realvirtual[best]
         del initial[best]
-        subregion,fit,realvirtual,initial = m2fs.aperture_order(subregion,fit,realvirtual,initial)
+        subregion,fit,realvirtual,initial = aperture_order(subregion,fit,realvirtual,initial)
 
     if event.key=='e':
         aperture_centers = [fit[q].mean for q in range(0,len(fit))]
@@ -382,7 +382,7 @@ def on_key_find(event,args_list):
 
 def on_key_trace(event,args_list):
     import numpy as np
-    import m2fs_process as m2fs
+    #import m2fs_process as m2fs
     from specutils import SpectralRegion
     import astropy.units as u
     from astropy.modeling import models
@@ -463,7 +463,7 @@ def on_key_trace(event,args_list):
 
 def on_key_id_lines(event,args_list):
     import numpy as np
-    import m2fs_process as m2fs
+    #import m2fs_process as m2fs
     from specutils import SpectralRegion
     import astropy.units as u
     from astropy.modeling import models
@@ -2744,7 +2744,7 @@ def get_hdul(data,skysubtract_array,sky_array,wavcal_array,plugmap,m2fsrun,field
     return new_hdul
 
 
-def m2fs_getfromfits(hdul):
+def getfromfits(hdul):
     import numpy as np
     from astropy import time, coordinates as coord, units as u
     from astropy.time import Time
@@ -2863,7 +2863,7 @@ def m2fs_getfromfits(hdul):
                       wav_rms=wav_rms,temperature=temperature)
 
 
-def m2fs_multinest(fit_directory,root,targets,fitsobject,npix):
+def multinest(fit_directory,root,targets,fitsobject,npix):
     import numpy as np
     from scipy.stats import skew,kurtosis
     from astropy.io import fits
@@ -2951,7 +2951,7 @@ def m2fs_multinest(fit_directory,root,targets,fitsobject,npix):
 
 
 
-def m2fs_multinest_noflat(fit_directory,root,targets,fitsobject,npix):
+def multinest_noflat(fit_directory,root,targets,fitsobject,npix):
     import numpy as np
     from scipy.stats import skew,kurtosis
     from astropy.io import fits
