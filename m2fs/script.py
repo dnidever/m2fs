@@ -15,7 +15,7 @@ from astropy.modeling import models
 from . import process as m2fs
 import os
 from os import path
-import utils
+from . import utils
 import specutils
 from specutils.spectra import Spectrum1D
 import scipy

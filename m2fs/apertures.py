@@ -13,9 +13,9 @@ from astropy.nddata import NDDataRef
 import astropy.units as u
 from astropy.modeling import models
 from . import process as m2fs
+from . import utils
 import os
 from os import path
-import utils
 import specutils
 from specutils.spectra import Spectrum1D
 import scipy
