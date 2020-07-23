@@ -17,7 +17,7 @@ from astropy.modeling import models
 from ccdproc import Combiner
 import os
 import mycode
-import m2fs_process as m2fs
+import m2fs.process as m2fs
 matplotlib.use('TkAgg')
 
 
