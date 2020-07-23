@@ -12,7 +12,7 @@ from astropy.nddata import Cutout2D
 from astropy.nddata import NDDataRef
 import astropy.units as u
 from astropy.modeling import models
-import .process as m2fs
+from . import process as m2fs
 import os
 from os import path
 import utils
