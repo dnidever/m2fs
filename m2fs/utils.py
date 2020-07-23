@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # etaxi module
 import numpy as np
 import string
