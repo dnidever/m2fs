@@ -71,7 +71,7 @@ def get_resolution(fit_lines,wav,resolution_order,resolution_rejection_iteration
         if len(use)>3.:
             resolution = resolution_fitter(resolution_init,x[use],resolution_y[use])
             resolution_rms = np.sqrt(np.mean((resolution_y[use]-resolution(x[use]))**2))
-            outlier = (np.where(np.abs(resolution_y-resolution(x))>3.*resolution_rms))[0]#reject outliers
+            outlier = (np.where(np.abs(resolution_y-resolution(x))>3.*resolution_rms))[0]  # reject outliers
             resolution_y.mask[outlier] = True
     use = np.where(resolution_y.mask==False)[0]
     resolution_npoints = len(use)
@@ -94,7 +94,7 @@ def line_id_add_lines(linelist,line_centers,id_lines_used,func0,id_lines_tol_ang
             dist = np.sqrt((linelist.wavelength-func0(line_centers[j]))**2)
             nan = np.where(dist!=dist)[0]
             if len(nan)>0:
-                dist[nan] = np.inf#artificially replace any nans with huge values
+                dist[nan] = np.inf  # artificially replace any nans with huge values
             best = np.where(dist==np.min(dist))[0][0]
             if dist[best]<id_lines_tol_angs:
                 print(line_centers[j])
@@ -258,22 +258,22 @@ def on_key_boundary(event,args_list):
 
     global lower_x,lower_y,upper_x,upper_y,reject_x,reject_y
     data,lower_x,lower_y,upper_x,upper_y,reject_x,reject_y,fig=args_list
-    if event.key=='l':#add lower boundary point
+    if event.key=='l':  # add lower boundary point
         print('add boundary point at (',event.xdata,event.ydata,')')
         lower_x.append(event.xdata)
         lower_y.append(event.ydata)
 
-    if event.key=='u':#add upper boundary point
+    if event.key=='u':  # add upper boundary point
         print('add boundary point at (',event.xdata,event.ydata,')')
         upper_x.append(event.xdata)
         upper_y.append(event.ydata)
 
-    if event.key=='b':#add upper boundary point
+    if event.key=='b':  # add upper boundary point
         print('reject point at (',event.xdata,event.ydata,')')
         reject_x.append(event.xdata)
         reject_y.append(event.ydata)
 
-    if event.key=='d':#delete nearest boundary point
+    if event.key=='d':  # delete nearest boundary point
         print('delete point nearest (',event.xdata,event.ydata,')')
         x0 = event.xdata
         y0 = event.ydata
@@ -315,7 +315,7 @@ def on_key_find(event,args_list):
     global columnspec_array,subregion,fit,realvirtual,initial,window
     columnspec_array,column,subregion,fit,realvirtual,initial,window,fig = args_list
 
-    if event.key=='z':#revert to initial apertures
+    if event.key=='z':  # revert to initial apertures
         to_delete = np.where(np.logical_not(initial))[0]
         j = 0
         for i in range(0,len(to_delete)):
@@ -368,7 +368,7 @@ def on_key_find(event,args_list):
         x_center = new_center
         val1 = x_center-window/2.
         val2 = x_center+window/2.
-        subregion.append(SpectralRegion(val1*u.AA,val2*u.AA))#define extraction region from window
+        subregion.append(SpectralRegion(val1*u.AA,val2*u.AA))  # define extraction region from window
         aaa = np.float(np.max(columnspec_array[column].spec-columnspec_array[column].continuum(columnspec_array[column].pixel.value)))
         halfwindow = window/2.
         fit.append(models.Gaussian1D(amplitude=aaa*u.electron,mean=x_center*u.AA,stddev=halfwindow*u.AA))
@@ -519,7 +519,7 @@ def on_key_id_lines(event,args_list):
             id_lines_wav.append(np.float(command))
             id_lines_used.append(best)
 
-    if event.key=='d':#delete nearest boundary point
+    if event.key=='d':  # delete nearest boundary point
         print('delete point nearest (',event.xdata,event.ydata,')')
         if len(id_lines_pix)>0:
             dist = (id_lines_pix-event.xdata)**2
@@ -605,7 +605,7 @@ def on_key_id_lines(event,args_list):
     fig.canvas.draw_idle()
     return
 
-def on_click(event):#(event.xdata,event.ydata) give the user coordinates, event.x and event.y are internal coordinates
+def on_click(event):  # (event.xdata,event.ydata) give the user coordinates, event.x and event.y are internal coordinates
     print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
           ('double' if event.dblclick else 'single',event.button,
            event.x,event.y,event.xdata,event.ydata))
@@ -623,7 +623,7 @@ def get_continuum(spec1d,continuum_rejection_low,continuum_rejection_high,contin
     continuum_init = models.Chebyshev1D(degree=continuum_rejection_order)
     fitter = fitting.LinearLSQFitter()
 #    lamb=(np.arange(len(spec1d.data),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
-    lamb = spec1d.spectral_axis#(np.arange(len(spec1d.spectral_axis),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
+    lamb = spec1d.spectral_axis  # (np.arange(len(spec1d.spectral_axis),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
     y = np.ma.masked_array(spec1d.flux,mask=spec1d.mask)
 #    print(y.mask[y!=y])
 #    print(np.max(y))
@@ -637,11 +637,11 @@ def get_continuum(spec1d,continuum_rejection_low,continuum_rejection_high,contin
             continuum = continuum_init
 #        continuum = fitter(continuum_init,lamb.value,y)
         rms = np.sqrt(np.mean((y.data.value[y.mask==False]-continuum(lamb.value)[y.mask==False])**2))    
-        outlier = (np.where(spec1d.data-continuum(lamb.value)>continuum_rejection_high*rms))[0]#reject only high outliers (emission lines)
+        outlier = (np.where(spec1d.data-continuum(lamb.value)>continuum_rejection_high*rms))[0]  # reject only high outliers (emission lines)
         y.mask[outlier] = True
-        outlier = (np.where(spec1d.data-continuum(lamb.value)<continuum_rejection_low*rms))[0]#reject only high outliers (emission lines)
+        outlier = (np.where(spec1d.data-continuum(lamb.value)<continuum_rejection_low*rms))[0]  # reject only high outliers (emission lines)
         y.mask[outlier] = True
-#        outlier = (np.where(spec1d.data-continuum(lamb.value)>1.*spec1d.uncertainty.quantity.value))[0]#reject only high outliers (emission lines)
+#         outlier = (np.where(spec1d.data-continuum(lamb.value)>1.*spec1d.uncertainty.quantity.value))[0]#reject only high outliers (emission lines)
 #        y.mask[outlier] = True
     return continuum,rms
 
@@ -657,12 +657,12 @@ def get_continuum_throughputcorr(spec1d,continuum_rejection_iterations):
     continuum_init = models.Chebyshev1D(degree=10)
     fitter = fitting.LinearLSQFitter()
 #    lamb = (np.arange(len(spec1d.data),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
-    lamb = spec1d.spectral_axis#(np.arange(len(spec1d.spectral_axis),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
+    lamb = spec1d.spectral_axis  # (np.arange(len(spec1d.spectral_axis),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
     y = np.ma.masked_array(spec1d.flux,mask=spec1d.mask)
     for q in range(0,continuum_rejection_iterations):
 #        y = np.ma.masked_array(deepcopy(spec1d.data),mask=deepcopy(spec1d.mask))
         continuum = fitter(continuum_init,lamb.value[y.mask==False],y[y.mask==False])
-        outlier = (np.where(np.abs(spec1d.data-continuum(lamb.value))>3.*spec1d.uncertainty.quantity.value))[0]#reject only high outliers (emission lines)
+        outlier = (np.where(np.abs(spec1d.data-continuum(lamb.value))>3.*spec1d.uncertainty.quantity.value))[0]  # reject only high outliers (emission lines)
         y.mask[outlier] = True
 #        plt.scatter(lamb[y.mask==False],y[y.mask==False])
 #        plt.plot(lamb.value,continuum(lamb.value))
@@ -725,7 +725,7 @@ def column_stack(data,col):
     c = Combiner(stack)
     c.weights = 1./sig_stack**2
     comb = c.average_combine(uncertainty_func=mycode.stdmean)
-    lamb = np.arange(len(comb.data),dtype='float')#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
+    lamb = np.arange(len(comb.data),dtype='float')  # unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
     spec1d = Spectrum1D(flux=np.array(comb.data)*u.electron,spectral_axis=lamb*u.AA,uncertainty=comb.uncertainty,mask=comb.mask)
     return spec1d
 
@@ -736,8 +736,8 @@ def plot_apertures(pixel,spec,continuum,subregion,fit,realvirtual):
     from specutils.manipulation import extract_region
     from astropy import units as u
 
-    gs = plt.GridSpec(10,10) # define multi-panel plot
-    gs.update(wspace=0,hspace=0) # specify inter-panel spacing
+    gs = plt.GridSpec(10,10)   #  define multi-panel plot
+    gs.update(wspace=0,hspace=0)   #  specify inter-panel spacing
 #    fig = plt.figure(figsize=(6,6)) # define plot size
     ax1 = fig.add_subplot(111)
 
@@ -771,16 +771,16 @@ def fit_aperture(spec,window,x_center):
     from astropy.modeling import models,fitting
     from specutils.fitting import fit_lines
 
-    val1 = x_center-window/2.#window for fitting aperture
-    val2 = x_center+window/2.#window for fitting aperture
-    subregion0 = SpectralRegion(val1*u.AA,val2*u.AA)#define extraction region from window
-    sub_spectrum0 = extract_region(spec,subregion0)#extract from window
+    val1 = x_center-window/2.  # window for fitting aperture
+    val2 = x_center+window/2.  # window for fitting aperture
+    subregion0 = SpectralRegion(val1*u.AA,val2*u.AA)  # define extraction region from window
+    sub_spectrum0 = extract_region(spec,subregion0)  # extract from window
 #    sub_spectrum = extract_region(spec,subregion0)#extract from window
 
     sub_spectrum = Spectrum1D(flux=sub_spectrum0.flux,spectral_axis=sub_spectrum0.spectral_axis,uncertainty=sub_spectrum0.uncertainty)
 #    print(sub_spectrum)
 #    print(sub_spectrum)
-    rough = estimate_line_parameters(sub_spectrum,models.Gaussian1D())#get rough estimate of gaussian parameters for aperture
+    rough = estimate_line_parameters(sub_spectrum,models.Gaussian1D())  # get rough estimate of gaussian parameters for aperture
 #    np.random.seed(0)
 #    x = np.linspace(0.,10.,2056)
 #    y = 3*np.exp(-0.5*(x-6.3)**2/0.8**2)
@@ -791,11 +791,11 @@ def fit_aperture(spec,window,x_center):
 #    y_fit = g_fit(x*u.um)
 #    print(spectrum)
 
-    g_init = models.Gaussian1D(amplitude=rough.amplitude.value*u.electron,mean=rough.mean.value*u.AA,stddev=rough.stddev.value*u.AA)#now do a fit using rough estimate as first guess
-    g_fit0 = fit_lines(sub_spectrum,g_init)#now do a fit using rough estimate as first guess
+    g_init = models.Gaussian1D(amplitude=rough.amplitude.value*u.electron,mean=rough.mean.value*u.AA,stddev=rough.stddev.value*u.AA)  # now do a fit using rough estimate as first guess
+    g_fit0 = fit_lines(sub_spectrum,g_init)  # now do a fit using rough estimate as first guess
     return subregion0,g_fit0
 
-def aperture_order(subregion,g_fit,realvirtual,initial):#sort apertures in order of increasing column center
+def aperture_order(subregion,g_fit,realvirtual,initial):  # sort apertures in order of increasing column center
     import numpy as np
 
     means = [g_fit[i].mean.value for i in range(0,len(g_fit))]
@@ -821,7 +821,7 @@ def get_trace_xyz(j,columnspec_array,apertures_profile_middle,middle_column,trac
         if nlost<=trace_nlost_max:
             means = np.array([columnspec_array[k].apertures_profile.fit[q].mean.value for q in range(0,len(columnspec_array[k].apertures_profile.fit))])
             keep = np.where(means==means)[0]
-            means = means[keep]#remove any NaNs due to poor fits
+            means = means[keep]  # remove any NaNs due to poor fits
             amplitudes = np.array([columnspec_array[k].apertures_profile.fit[q].amplitude.value for q in range(0,len(columnspec_array[k].apertures_profile.fit))])
             amplitudes = amplitudes[keep]
             dist = (mean0-means)**2
@@ -844,7 +844,7 @@ def get_trace_xyz(j,columnspec_array,apertures_profile_middle,middle_column,trac
         if nlost<trace_nlost_max:
             means = np.array([columnspec_array[k].apertures_profile.fit[q].mean.value for q in range(0,len(columnspec_array[k].apertures_profile.fit))])
             keep = np.where(means==means)[0]
-            means = means[keep]#remove any NaNs due to poor fits
+            means = means[keep]  # remove any NaNs due to poor fits
             amplitudes = np.array([columnspec_array[k].apertures_profile.fit[q].amplitude.value for q in range(0,len(columnspec_array[k].apertures_profile.fit))])
             amplitudes = amplitudes[keep]
             dist = (mean0-means)**2
@@ -885,7 +885,7 @@ def get_aperture(j,columnspec_array,apertures_profile_middle,middle_column,trace
     fitter = fitting.LinearLSQFitter()
     y = np.ma.masked_array(trace_y,mask=False)
     z = np.ma.masked_array(trace_z,mask=False)
-    sig_y = trace_y#fudge for now, not used for anything
+    sig_y = trace_y  # fudge for now, not used for anything
 
     trace_pix_min = []
     trace_pix_max = []
@@ -955,17 +955,17 @@ def get_aperture(j,columnspec_array,apertures_profile_middle,middle_column,trace
     profile_fitter = fitting.LinearLSQFitter()
 
     x = np.array([np.median(columnspec_array[k].columns) for k in range(0,len(columnspec_array))])
-    if apertures_profile_middle.realvirtual[j]:#if this is a real aperture, fit line profile as function of pixel
+    if apertures_profile_middle.realvirtual[j]:  # if this is a real aperture, fit line profile as function of pixel
         y1 = []
         y2 = []
-        for i in range(0,len(x)):#re-fit Gaussian profile at different x values along spectral axis
+        for i in range(0,len(x)):  # re-fit Gaussian profile at different x values along spectral axis
             center = func[len(func)-1](x[i])
-            if((center>0.)&(center<np.max(columnspec_array[i].pixel.value))):#make sure the trace function y(x) makes sense at this x
+            if((center>0.)&(center<np.max(columnspec_array[i].pixel.value))):  # make sure the trace function y(x) makes sense at this x
                 spec1d = Spectrum1D(spectral_axis=columnspec_array[i].pixel,flux=columnspec_array[i].spec*u.electron,uncertainty=columnspec_array[i].err,mask=columnspec_array[i].mask)
                 subregion0,g_fit0 = fit_aperture(spec1d-columnspec_array[i].continuum(columnspec_array[i].pixel.value),window,center)
                 y1.append(g_fit0.stddev.value)
                 y2.append(g_fit0.amplitude.value)
-            else:#otherwise give a place-holder value and mask it below
+            else:  # otherwise give a place-holder value and mask it below
                 y1.append(np.float(-999.))
                 y2.append(np.float(-999.))
         y1 = np.array(y1)
@@ -990,8 +990,8 @@ def get_aperture(j,columnspec_array,apertures_profile_middle,middle_column,trace
                 profile_sigma_rms = np.sqrt(np.mean((sigma_y[use]-profile_sigma(x[use]))**2))
                 profile_amplitude = profile_fitter(profile_init,x[use],amplitude_y[use])
                 profile_amplitude_rms = np.sqrt(np.mean((amplitude_y[use]-profile_amplitude(x[use]))**2))
-                outlier1 = (np.where(np.abs(sigma_y-profile_sigma(x))>3.*profile_sigma_rms))[0]#reject outliers
-                outlier2 = (np.where(np.abs(amplitude_y-profile_amplitude(x))>3.*profile_amplitude_rms))[0]#reject outliers
+                outlier1 = (np.where(np.abs(sigma_y-profile_sigma(x))>3.*profile_sigma_rms))[0]  # reject outliers
+                outlier2 = (np.where(np.abs(amplitude_y-profile_amplitude(x))>3.*profile_amplitude_rms))[0]  # reject outliers
                 sigma_y.mask[outlier1] = True
                 amplitude_y.mask[outlier2] = True
         use = np.where((sigma_y.mask==False)&(amplitude_y.mask==False))[0]
@@ -1079,8 +1079,8 @@ def get_aperture_profile(apertures_initial,spec1d,continuum,window):
 
     subregion = []
     g_fit = []
-    realvirtual = []#1 for real aperture, 0 for virtual aperture (ie a placeholder aperture for bad/unplugged fiber etc.)
-    initial = []#1 for apertures identified automatically, 0 for those identified by hand
+    realvirtual = []  # 1 for real aperture, 0 for virtual aperture (ie a placeholder aperture for bad/unplugged fiber etc.)
+    initial = []  # 1 for apertures identified automatically, 0 for those identified by hand
 
     for j in range(0,len(apertures_initial)):
         x_center = apertures_initial['line_center'][j].value
@@ -1155,15 +1155,15 @@ def get_columnspec(data,trace_step,n_lines,continuum_rejection_low,continuum_rej
         spec1d0 = column_stack(data,col0)
 #        np.pause()
         continuum0,rms0 = get_continuum(spec1d0,continuum_rejection_low,continuum_rejection_high,continuum_rejection_iterations,continuum_rejection_order)
-        pixel0 = (np.arange(len(spec1d0.data),dtype='float'))*u.AA#unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
+        pixel0 = (np.arange(len(spec1d0.data),dtype='float'))*u.AA  # unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
         spec_contsub = spec1d0-continuum0(pixel0.value)
         spec_contsub.uncertainty.quantity.value[:] = rms0
 #        spec_contsub.mask[:] = False
-        apertures_initial0 = find_lines_derivative(spec_contsub,flux_threshold=threshold_factor*rms0)#find peaks in continuum-subtracted "spectrum"
+        apertures_initial0 = find_lines_derivative(spec_contsub,flux_threshold=threshold_factor*rms0)  # find peaks in continuum-subtracted "spectrum"
 #        apertures_profile0 = get_aperture_profile(spec1d0,window)
 
         apertures_profile0 = get_aperture_profile(apertures_initial0,spec1d0,continuum0,window)
-        columnspec0 = columnspec(columns=col0,spec=spec1d0.data,mask=spec1d0.mask,err=spec1d0.uncertainty,pixel=pixel0,continuum=continuum0,rms=rms0,apertures_initial=apertures_initial0,apertures_profile=apertures_profile0)#have to break up spec1d into individual data/mask/uncertainty fields in order to allow pickling of columnspec_array
+        columnspec0 = columnspec(columns=col0,spec=spec1d0.data,mask=spec1d0.mask,err=spec1d0.uncertainty,pixel=pixel0,continuum=continuum0,rms=rms0,apertures_initial=apertures_initial0,apertures_profile=apertures_profile0)  # have to break up spec1d into individual data/mask/uncertainty fields in order to allow pickling of columnspec_array
 #        columnspec0 = columnspec(columns=col0,spec=spec1d0,mask=spec1d0.mask,err=spec1d0.uncertainty,pixel=pixel0,continuum=continuum0,rms=rms0,apertures_initial=apertures_initial0,apertures_profile=apertures_profile0)#have to break up spec1d into individual data/mask/uncertainty fields in order to allow pickling of columnspec_array
 #        columnspec0.apertures_profile=apertures_profile0
         print('found '+str(len(apertures_initial0))+' apertures in column '+str(col0))
@@ -1368,7 +1368,7 @@ def get_fitlines(extract1d,continuum_rejection_low,continuum_rejection_high,cont
     spec_contsub.mask = spec1d0.mask
     spec_contsub.flux[spec_contsub.flux!=spec_contsub.flux] = 0.
 #    spec_contsub.flux[spec_contsub.flux.value<-100] = 0.*u.electron
-    id_lines_initial0 = find_lines_derivative(spec_contsub,flux_threshold=threshold_factor*rms0)#find peaks in continuum-subtracted "spectrum"
+    id_lines_initial0 = find_lines_derivative(spec_contsub,flux_threshold=threshold_factor*rms0)  # find peaks in continuum-subtracted "spectrum"
     fit_lines = get_aperture_profile(id_lines_initial0,spec1d0,continuum0,window)
     return continuum0,spec_contsub,fit_lines
 
@@ -1441,7 +1441,7 @@ def get_id_lines_translate(extract1d_template,id_lines_template,extract1d,lineli
 #        spec_contsub_template=spec_contsub_template0/(np.median(spec_contsub_template0.flux.value[use_template]))
             '''first run dynesty to fit for zero order offset between current lamp spectrum and template (gradient-descent gets stuck in local minima)'''
             ndim = 8
-            def get_interp(q):#spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template):
+            def get_interp(q):  # spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template):
                 import numpy as np
                 import matplotlib.pyplot as plt
         #    spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template = args
@@ -1453,16 +1453,16 @@ def get_id_lines_translate(extract1d_template,id_lines_template,extract1d,lineli
                 interp = q[0]*np.interp(spec_contsub.spectral_axis.value[use],x1,y0)
                 return interp
 
-            def my_func(q):#spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template):
+            def my_func(q):  # spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template):
                 import numpy as np
                 import matplotlib.pyplot as plt
-                interp = get_interp(q)#,spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template)
+                interp = get_interp(q)  # ,spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template)
 #        diff2 = ((spec_contsub.flux.value[use]-interp)/spec_contsub.uncertainty.quantity.value[use])**2
                 diff2 = (spec_contsub.flux.value[use]-interp)**2
                 return np.sum(diff2)
 
             def loglike(q):
-                return -0.5*my_func(q)#,spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template)
+                return -0.5*my_func(q)  # ,spec_contsub,spec_contsub_template,use,use_template,pixel0_template,pixelscale_template)
 
             def ptform(u):
                 prior = []
@@ -1523,7 +1523,7 @@ def get_id_lines_translate(extract1d_template,id_lines_template,extract1d,lineli
                     dist = np.sqrt((x1[i]-np.array([fit_lines.fit[q].mean.value for q in range(0,len(fit_lines.fit))]))**2)
                     nan = np.where(dist!=dist)[0]
                     if len(nan)>0:
-                        dist[nan] = np.inf#artificially replace any nans with huge values
+                        dist[nan] = np.inf  # artificially replace any nans with huge values
                     best = np.where(dist==np.min(dist))[0][0]
 #                    print(best,dist[best],id_lines_tol_pix)
                     if dist[best]<id_lines_tol_pix:
@@ -1669,7 +1669,7 @@ def get_apflat(data,aperture_array,apertures_profile_middle,aperture_peak,image_
 
     pix = np.arange(len(data.data[0]))
     arr2d = np.zeros((len(data.data),len(data.data[0])))
-    apmask0 = ~apmask#np.array(data.mask,dtype=bool)
+    apmask0 = ~apmask  # np.array(data.mask,dtype=bool)
 
     apflat_mask = mask_boundary(apmask0,image_boundary)
 
@@ -1704,9 +1704,9 @@ def get_apflat(data,aperture_array,apertures_profile_middle,aperture_peak,image_
 #                        print(weight,profile_amplitude,profile_sigma,data.data[y1+k,x],arr2d[y1+k,x],data.data[y1+k,x]/arr2d[y1+k,x])
     residual = CCDData((data.data-arr2d)/data.uncertainty.quantity.value,uncertainty=StdDevUncertainty(data.uncertainty.quantity.value/data.uncertainty.quantity.value),unit=u.electron/u.electron,mask=apflat_mask)
     rms = np.sqrt(np.mean((data.data[apmask==True]-arr2d[apmask==True])**2))
-    new_masked = np.where(np.abs(residual.data)>3.)#this flags the 'ghosts'
+    new_masked = np.where(np.abs(residual.data)>3.)  # this flags the 'ghosts'
     if len(new_masked[0])>0:
-        if 'twilight' not in field_name:#when twilight is its own flat-field spectrum, this doesn't work
+        if 'twilight' not in field_name:  # when twilight is its own flat-field spectrum, this doesn't work
             apflat_mask[new_masked] = True
 
 #    expected_2darray = CCDData(arr2d,unit=data.unit,mask=data.mask,uncertainty=StdDevUncertainty(np.full((len(data.data),len(data.data[0])),rms,dtype='float')))
@@ -1815,7 +1815,7 @@ def get_linelist(linelist_file):
     linelist_species = np.array(linelist_species)
     return linelist(wavelength=linelist_wavelength,species=linelist_species)
 
-def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):#wav array for bad apertures (all masked pixels, number of id'd lines < id_lines_minlines, etc.) will have one element [0]
+def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):  # wav array for bad apertures (all masked pixels, number of id'd lines < id_lines_minlines, etc.) will have one element [0]
     import numpy as np
     import scipy
 
@@ -1854,10 +1854,10 @@ def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):#wav array fo
 
     if len(thar_func)>0:
         pix = extract1d_array[i].spec1d_pixel
-        wav = thar_func[0](pix)#default is to use first thar function
+        wav = thar_func[0](pix)  # default is to use first thar function
         wav_rms = np.full(len(wav),-999.,dtype=float)
         line_sigma = thar_resolution[0](pix)*thar_dwav[0]/thar_dpix[0]
-        if len(thar_func)>1:#if there is more than 1 thar function, then interpolate according to MJD of observation
+        if len(thar_func)>1:  # if there is more than 1 thar function, then interpolate according to MJD of observation
             wav = []
             wav_rms = []
             line_sigma = []
@@ -1878,16 +1878,16 @@ def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):#wav array fo
 
 #                        f = interpolate.interp1d(thar_mjd[thar_use],wav0,kind='linear',fill_value=(wav0[0],wav0[-1]),bounds_error=False)
                 params = np.array([wav0[0],0.])
-                lsq = scipy.optimize.minimize(my_func,params,method='powell',options={'maxiter':100})#use LLSq to fit linear function to wavelength (at this pixel) as function of MJD of arc
+                lsq = scipy.optimize.minimize(my_func,params,method='powell',options={'maxiter':100})  # use LLSq to fit linear function to wavelength (at this pixel) as function of MJD of arc
 #                        print(lsq.x,wav0,thar_mjd[thar_use],mjd,lsq.x[0]+lsq.x[1]*mjd,f(mjd))
-                wav.append(lsq.x[0]+lsq.x[1]*mjd)#apply that function to get wavelength (at this pixel) at MJD of flat
+                wav.append(lsq.x[0]+lsq.x[1]*mjd)  # apply that function to get wavelength (at this pixel) at MJD of flat
                 wav_rms.append(np.sqrt(np.mean((wav0-(lsq.x[0]+lsq.x[1]*mjd))**2)))
                 line_sigma.append(np.mean(line_sigma0))
 #                        wav.append(f(mjd))
             wav = np.array(wav)
             wav_rms = np.array(wav_rms)
             line_sigma = np.array(line_sigma)
-    return wavcal(wav=wav,nthar=len(np.where(thar_use==1)[0]),thar_rms=thar_rms,wav_rms=wav_rms,mjd=mjd,line_sigma=line_sigma)#line_sigma is function estimated based on stddev of gaussian fits to arc lines
+    return wavcal(wav=wav,nthar=len(np.where(thar_use==1)[0]),thar_rms=thar_rms,wav_rms=wav_rms,mjd=mjd,line_sigma=line_sigma)  # line_sigma is function estimated based on stddev of gaussian fits to arc lines
 
 def get_throughput_continuum(twilightstack_array,twilightstack_wavcal_array,continuum_rejection_low,continuum_rejection_high,continuum_rejection_iterations,continuum_rejection_order):
     import numpy as np
@@ -1908,7 +1908,7 @@ def get_throughput_continuum(twilightstack_array,twilightstack_wavcal_array,cont
     use = []
     for i in range(0,len(twilightstack_array)):
 #        print('working on aperture ',i+1,' of ',len(twilightstack_array))
-        wav = twilightstack_wavcal_array[i].wav#get_wav(i,thar,twilightstack_array,thar_mjd,mjd,id_lines_minlines)
+        wav = twilightstack_wavcal_array[i].wav  # get_wav(i,thar,twilightstack_array,thar_mjd,mjd,id_lines_minlines)
 #        print(i,len(np.where(twilightstack_array[i].spec1d_mask==False)[0]),len(wav))
         if ((len(np.where(twilightstack_array[i].spec1d_mask==False)[0])>1)&(len(wav)>0)):
             wav_min.append(np.min(wav[twilightstack_array[i].spec1d_mask==False]))
@@ -1940,7 +1940,7 @@ def get_throughput_continuum(twilightstack_array,twilightstack_wavcal_array,cont
     continuum_array = np.array(continuum_array)
     if((len(twilightstack_array)>0)&(len(np.where(use==1)[0])>0)):
         wav0 = np.linspace(np.min(wav_min[use==1]),np.max(wav_max[use==1]),np.long(np.median(npix[use==1])))
-        flux0 = []#np.zeros(len(wav0))
+        flux0 = []  # np.zeros(len(wav0))
         mask0 = []
         for j in range(0,len(wav0)):
             keep = np.where((wav_min<=wav0[j])&(wav_max>=wav0[j])&(use==1))[0]
@@ -1966,7 +1966,7 @@ def get_throughput_continuum(twilightstack_array,twilightstack_wavcal_array,cont
 
     return continuum_array,continuum0
 
-def get_throughputcorr(i,throughput_continuum,extract1d_array,twilightstack_array,twilightstack_continuum_array,wavcal_array):#thar,id_lines_minlines,mjd,thar_mjd,flat_mjd):
+def get_throughputcorr(i,throughput_continuum,extract1d_array,twilightstack_array,twilightstack_continuum_array,wavcal_array):  # thar,id_lines_minlines,mjd,thar_mjd,flat_mjd):
     import numpy as np
     from specutils.spectra import Spectrum1D
     import astropy.units as u
@@ -2008,7 +2008,7 @@ def get_throughputcorr(i,throughput_continuum,extract1d_array,twilightstack_arra
 
     return throughput,throughputcorr
 
-def get_plugmap(header,throughputcorr_array,fibermap,ccd,fiber_changes):#for older hecto frames, interprets iraf headers to get wavelength solutions for each aperture
+def get_plugmap(header,throughputcorr_array,fibermap,ccd,fiber_changes):  # for older hecto frames, interprets iraf headers to get wavelength solutions for each aperture
     from astropy.io import fits
     import numpy as np
     import re
@@ -2116,10 +2116,10 @@ def get_plugmap(header,throughputcorr_array,fibermap,ccd,fiber_changes):#for old
         coords_string = fibermap_item[2]+' '+fibermap_item[3]
 #        coords_string = header[cassfib].replace('_',' ')
         
-        t = -999#for consistency with hecto fits format
-        r = -999#for consistency with hecto fits format
-        x = -999#for consistency with hecto fits format
-        y = -999#for consistency with hecto fits format
+        t = -999  # for consistency with hecto fits format
+        r = -999  # for consistency with hecto fits format
+        x = -999  # for consistency with hecto fits format
+        y = -999  # for consistency with hecto fits format
         obj = coords_string
         if ((fibermap_item[5]=='T')|(fibermap_item[5]=='O')):
 #        if ':' in coords_string:
@@ -2219,7 +2219,7 @@ def get_plugmap(header,throughputcorr_array,fibermap,ccd,fiber_changes):#for old
     resolution = np.array(resolution)
     filt = np.array(filt)
 
-    bcode = objtype#redundancy seems to be built in at CfA for some reason
+    bcode = objtype  # redundancy seems to be built in at CfA for some reason
     rmag = np.zeros(len(aperture))
     rapmag = np.zeros(len(aperture))
     frames = np.zeros(len(aperture),dtype='int')
@@ -2478,7 +2478,7 @@ def get_thar(datadir,utdate,ccd,tharfile,hires_exptime,medres_exptime,field_name
         else:
             id_lines_array_file = root0+'_id_lines_array_noflat.pickle'
         id_lines_array = pickle.load(open(id_lines_array_file,'rb'))
-        data = astropy.nddata.CCDData.read(data_file)#format is such that data.data[:,0] has column-0 value in all rows
+        data = astropy.nddata.CCDData.read(data_file)  # format is such that data.data[:,0] has column-0 value in all rows
         time0 = [data.header['DATE-OBS']+'T'+data.header['UT-TIME'],data.header['DATE-OBS']+'T'+data.header['UT-END']]
         times = time.Time(time0,location=lco,precision=6)
         filtername = data.header['FILTER']
@@ -2673,21 +2673,21 @@ def m2fs_getfromfits(hdul):
             self.temperature = temperature
 #    nddata = astropy.nddata.CCDData.read(fitsfile[i],unit=u.electron)
 #    hdul = fits.open(fitsfile)
-#for new CfA pipeline, HDUs are as follows (via email from Nelson on Apr 3, 2019:
-#hdu0: wavelength(angs)
-#hdu1: sky-subtracted, variance-weighted coadded spectra (total counts) OR flux-calibrated averaged spectra
-#hdu2: inverse variance (counts)
-#hdu3: AND bad pixel mask, requires pixel to be masked in all co-added frames
-#hdu4: OR bad pixel mask, requires pixel to be masked in any co-added frames
-#hdu5: plugmap structure (fiber info)
-#hdu6: combined sky spectra, absent if flux calibration was set
-#hdu7: summed (unweighted) spectra, absent if flux calibration was set
+    # for new CfA pipeline, HDUs are as follows (via email from Nelson on Apr 3, 2019:
+    # hdu0: wavelength(angs)
+    # hdu1: sky-subtracted, variance-weighted coadded spectra (total counts) OR flux-calibrated averaged spectra
+    # hdu2: inverse variance (counts)
+    # hdu3: AND bad pixel mask, requires pixel to be masked in all co-added frames
+    # hdu4: OR bad pixel mask, requires pixel to be masked in any co-added frames
+    # hdu5: plugmap structure (fiber info)
+    # hdu6: combined sky spectra, absent if flux calibration was set
+    # hdu7: summed (unweighted) spectra, absent if flux calibration was set
     wav = hdul[0].data
     skysub = hdul[1].data
     ivar = hdul[2].data
     mask_and = hdul[3].data
     mask_or = hdul[4].data
-    mask = mask_or#use the AND mask
+    mask = mask_or  # use the AND mask
     sky_spec = hdul[6].data
     var = 1./ivar
     masked = np.where(mask_or==1)[0]
@@ -2945,9 +2945,9 @@ def get_plot_resolution(thar,root0):
     matplotlib.use('pdf')
 
     plot_resolution_file = root0+'_resolution.pdf'
-    gs = plt.GridSpec(7,7) # define multi-panel plot
-    gs.update(wspace=0,hspace=0) # specify inter-panel spacing
-    fig = plt.figure(figsize=(6,6)) # define plot size
+    gs = plt.GridSpec(7,7)   #  define multi-panel plot
+    gs.update(wspace=0,hspace=0)   #  specify inter-panel spacing
+    fig = plt.figure(figsize=(6,6))   #  define plot size
     ax1 = fig.add_subplot(gs[0:6,0:6])
 
     for j in range(0,len(thar)):
@@ -2967,3 +2967,5 @@ def get_plot_resolution(thar,root0):
 #    plt.show()
     plt.close()
     return
+
+#  LocalWords:  LinearLSQFitter
