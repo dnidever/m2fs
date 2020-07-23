@@ -1,0 +1,91 @@
+#!/usr/bin/env python
+
+# By Matt Walker, with some revisions by D. Nidever
+#
+
+import numpy as np
+import astropy
+from astropy import units
+from astropy.io import fits
+import matplotlib
+import matplotlib.pyplot as plt
+from astropy.nddata import NDData
+from astropy.nddata import CCDData
+import ccdproc
+import astropy.units as u
+from astropy.modeling import models
+from ccdproc import Combiner
+import os
+import mycode
+import m2fs_process as m2fs
+matplotlib.use('TkAgg')
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description='Make a master M2FS bias image.')
+    parser.add_argument('directory', type=str, nargs=1, help='M2FS raw directory')
+    parser.add_argument('tag', type=str, nargs=1, help='Short name (e.g., jan20)')
+    args = parser.parse_args()
+
+    directory = args.directory[0]
+    tag = args.tag[0]
+    #directory = '/nfs/nas-0-9/mgwalker.proj/m2fs/'
+    #m2fsrun = 'jan20' 
+    datadir = m2fs.get_datadir(m2fsrun)
+
+    with open(directory+m2fsrun+'_bias_raw') as f:
+        data = f.readlines()[0:]
+    utdate = []
+    file1 = []
+    file2 = []
+    for line in data:
+        p = line.split()
+        utdate.append(str(p[0]))
+        file1.append(int(p[1]))
+        file2.append(int(p[2]))
+    utdate = np.array(utdate)
+    file1 = np.array(file1)
+    file2 = np.array(file2)
+
+    # Arm loop
+    for ccd in (['b','r']):
+        # Amp loop
+        for chip in (['c1','c2','c3','c4']):
+            obs_readnoise = []
+            master_processed = []
+            sig_master_processed = []
+            # Date loop
+            for i in range(0,len(utdate)):
+                processed = []
+                sig_processed = []
+                # File loop
+                for j in range(file1[i],file2[i]+1):
+                    filename = datadir+utdate[i]+'/'+ccd+str(j).zfill(4)+chip+'.fits'
+                
+                    data = astropy.nddata.CCDData.read(filename,unit=u.adu)      # header is in data.meta
+                    print(filename,data.header['object'],data.header['binning'])
+
+                    oscan_subtracted = ccdproc.subtract_overscan(data,overscan=data[:,1024:],overscan_axis=1,model=models.Polynomial1D(3),add_keyword={'oscan_corr':'Done'})
+                    trimmed1 = ccdproc.trim_image(oscan_subtracted[:,:1024],add_keyword={'trim1':'Done'})
+                    trimmed2 = ccdproc.trim_image(trimmed1[:1028,:1024],add_keyword={'trim2':'Done'})
+                    array1d = trimmed2.data.flatten()
+                    gain = np.float(trimmed2.header['egain'])
+                    keep = np.where(np.abs(array1d)<100.)[0]                    # remove crazy outliers
+                    obs_readnoise.append(np.std(array1d[keep]*gain))
+                    processed.append(trimmed2)
+                    master_processed.append(trimmed2)
+
+            obs_readnoise = np.array(obs_readnoise)
+            c = Combiner(master_processed)
+            c.clip_extrema(nlow=1,nhigh=1)
+            old_n_masked = 0
+            new_n_masked = c.data_arr.mask.sum()
+            while (new_n_masked > old_n_masked):
+                c.sigma_clipping(low_thresh = 3,high_thresh=3,func=np.ma.median)
+                old_n_masked = new_n_masked
+                new_n_masked = c.data_arr.mask.sum()
+
+            ccdall = c.average_combine()
+            ccdall[0].header['obs_rdnoise'] = str(np.median(obs_readnoise))
+            ccdall.write(directory+m2fsrun+'_'+ccd+'_'+chip+'_master_bias.fits',overwrite=True)
+
