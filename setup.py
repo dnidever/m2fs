@@ -9,6 +9,6 @@ setup(name='m2fs',
       author_email='mgwalker21@gmail.com',
       url='https://github.com/dnidever/m2fs',
       packages=['m2fs'],
-      scripts=['bin/m2fs_zero'],
+      scripts=['bin/m2fs_zero','bin/m2fs_dark],
       requires=['numpy','astropy','scipy','specutils','ccdproc']
 )
