@@ -375,6 +375,7 @@ def on_key_find(event,args_list):
         ax1.axvline(x=fit[j].mean.value,color='b',lw=0.3,alpha=0.7)
         ax1.plot(sub_spectrum_pixel.value,y_fit,color='r',lw=0.2,alpha=0.7)
         ax1.text(fit[j].mean.value,0,str(j+1),fontsize=8)
+        ax1.set_ylim([0,10000])
         if not realvirtual[j]:
             ax1.axvline(x=fit[j].mean.value,color='k',lw=0.5,alpha=1,linestyle='--')
     fig.canvas.draw_idle()
@@ -1039,10 +1040,17 @@ def get_aperture(j,columnspec_array,apertures_profile_middle,middle_column,trace
     return aperture0
 
 
+class mapflat_compare:
+    def __init__(self,func=None,rms=None,npoints=None):
+        self.func=func
+        self.rms=rms
+        self.npoints=npoints
+
 class wavcal:
-    def __init__(self,wav=None,nthar=None,thar_rms=None,wav_rms=None,mjd=None,line_sigma=None):
+    def __init__(self,wav=None,nthar=None,thar_npoints=None,thar_rms=None,wav_rms=None,mjd=None,line_sigma=None):
         self.wav = wav
         self.nthar = nthar
+        self.thar_npoints=thar_npoints
         self.thar_rms = thar_rms
         self.wav_rms = wav_rms
         self.mjd = mjd
@@ -1071,7 +1079,8 @@ class aperture_profile:
         self.initial = initial
 
 class aperture:
-    def __init__(self,trace_aperture=None,trace_func=None,trace_rms=None,trace_npoints=None,trace_pixel_min=None,trace_pixel_max=None,profile_sigma=None,profile_sigma_rms=None,profile_amplitude=None,profile_amplitude_rms=None,profile_npoints=None):
+    def __init__(self,trace_aperture=None,trace_func=None,trace_rms=None,trace_npoints=None,trace_pixel_min=None,trace_pixel_max=None,
+                 profile_sigma=None,profile_sigma_rms=None,profile_amplitude=None,profile_amplitude_rms=None,profile_npoints=None):
         self.trace_aperture = trace_aperture
         self.trace_func = trace_func
         self.trace_rms = trace_rms
@@ -1225,6 +1234,7 @@ def fiddle_apertures(columnspec_array,column,window,apertures,find_apertures_fil
 
         ax1.axvline(x=fit[j].mean.value,color='b',lw=0.3,alpha=0.7)
         ax1.plot(sub_spectrum_pixel.value,y_fit,color='r',lw=0.2,alpha=0.7)
+        ax1.set_ylim([0,10000])
         ax1.text(fit[j].mean.value,0,str(j+1),fontsize=8)
         if not realvirtual[j]:
             ax1.axvline(x=fit[j].mean.value,color='k',lw=0.5,alpha=1,linestyle='--')
@@ -1518,12 +1528,12 @@ def get_id_lines_translate(extract1d_template,id_lines_template,extract1d,lineli
             interp = get_interp(shiftstretch.x)
             print('log likelihood/1e9 = ',loglike(shiftstretch.x)/1.e9)
 
-            plt.plot(spec_contsub.spectral_axis[use],spec_contsub.flux[use],color='g',lw=0.3,alpha=0.9)
-            plt.plot(spec_contsub_template.spectral_axis[use_template],
-                     spec_contsub_template.flux[use_template],color='r',lw=0.3,alpha=0.9)
-            plt.plot(spec_contsub_template.spectral_axis[use],interp,color='cyan',lw=0.3,alpha=0.9)
-            plt.show()
-            plt.close()
+#            plt.plot(spec_contsub.spectral_axis[use],spec_contsub.flux[use],color='g',lw=0.3,alpha=0.9)
+#            plt.plot(spec_contsub_template.spectral_axis[use_template],
+#                     spec_contsub_template.flux[use_template],color='r',lw=0.3,alpha=0.9)
+#            plt.plot(spec_contsub_template.spectral_axis[use],interp,color='cyan',lw=0.3,alpha=0.9)
+#            plt.show()
+#            plt.close()
 
             found = 0
             id_lines_pix = []
@@ -1621,8 +1631,8 @@ def get_id_lines_translate(extract1d_template,id_lines_template,extract1d,lineli
     plt.show()
     plt.close()
 
-    
-def get_extract1d(j,data,apertures_profile_middle,aperture_array,aperture_peak,pix,extract1d_aperture_width):
+
+def get_extract1d(j,data,apertures_profile_middle,aperture_array,aperture_peak,pix,extract1d_aperture_width,offset):
     import numpy as np
     import scipy
     from astropy.nddata import CCDData
@@ -1637,7 +1647,7 @@ def get_extract1d(j,data,apertures_profile_middle,aperture_array,aperture_peak,p
     spec_mask = []
 
     for x in pix:
-        ymid = aperture_array[j].trace_func(x)
+        ymid = aperture_array[j].trace_func(x)+offset
         profile_sigma = aperture_array[j].profile_sigma(x)
         wing = np.min([extract1d_aperture_width,3.*profile_sigma,(above0-below0)/2./2.])
 #        wing = 3.
@@ -1858,15 +1868,18 @@ def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):
 
     thar_func = []
     thar_use = []
+    thar_npoints = []
     thar_rms = []
     thar_dwav = []
     thar_dpix = []
     thar_resolution = []
+
     for j in range(0,len(thar)):
         this = np.where(np.array([thar[j][q].aperture for q in range(0,len(thar[j]))])==extract1d_array[i].aperture)[0]
         if len(this)>0:
             if thar[j][this[0]].npoints>=id_lines_minlines:              
                 thar_func.append(thar[j][this[0]].func)
+                thar_npoints.append(thar[j][this[0]].npoints)
                 thar_rms.append(thar[j][this[0]].rms)
                 keep = np.where(thar[j][this[0]].wav.mask==False)[0]
                 thar_dwav.append(np.max(thar[j][this[0]].wav)-np.min(thar[j][this[0]].wav))
@@ -1874,32 +1887,36 @@ def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):
                 thar_resolution.append(thar[j][this[0]].resolution)
                 thar_use.append(1)
             else:
+                thar_func.append(0.)
+                thar_npoints.append(-999.)
                 thar_rms.append(-999.)
                 thar_dwav.append(-999.)
                 thar_dpix.append(-999.)
-                thar_resolution = (-999.)
+                thar_resolution.append(thar[j][this[0]].resolution)
                 thar_use.append(0)
     thar_use = np.array(thar_use)
+    thar_npoints = np.array(thar_npoints)
     thar_rms = np.array(thar_rms)
     thar_dwav = np.array(thar_dwav)
     thar_dpix = np.array(thar_dpix)
     thar_resolution = np.array(thar_resolution)
 
-    if len(thar_func)>0:
+    keep = np.where(thar_use==1)[0]
+    if len(keep)>0:
         pix = extract1d_array[i].spec1d_pixel
-        wav = thar_func[0](pix)  # default is to use first thar function
+        wav = thar_func[keep[0]](pix)#default is to use first thar function
         wav_rms = np.full(len(wav),-999.,dtype=float)
-        line_sigma = thar_resolution[0](pix)*thar_dwav[0]/thar_dpix[0]
-        if len(thar_func)>1:  # if there is more than 1 thar function, then interpolate according to MJD of observation
+        line_sigma = thar_resolution[keep[0]](pix)*thar_dwav[keep[0]]/thar_dpix[keep[0]]
+        if len(keep)>1:#if there is more than 1 thar function, then interpolate according to MJD of observation
             wav = []
             wav_rms = []
             line_sigma = []
             for j in range(0,len(pix)):
                 wav0 = []
                 line_sigma0 = []
-                for k in range(0,len(thar_func)):
-                    wav0.append(thar_func[k](pix[j]))
-                    line_sigma0.append(thar_resolution[k](pix[j])*thar_dwav[k]/thar_dpix[k])
+                for k in range(0,len(keep)):
+                    wav0.append(thar_func[keep[k]](pix[j]))
+                    line_sigma0.append(thar_resolution[keep[k]](pix[j])*thar_dwav[keep[k]]/thar_dpix[keep[k]])
                 wav0 = np.array(wav0)
                 line_sigma0 = np.array(line_sigma0)
 
@@ -1911,17 +1928,18 @@ def get_wav(i,thar,extract1d_array,thar_mjd,mjd,id_lines_minlines):
 
 #                        f = interpolate.interp1d(thar_mjd[thar_use],wav0,kind='linear',fill_value=(wav0[0],wav0[-1]),bounds_error=False)
                 params = np.array([wav0[0],0.])
-                lsq = scipy.optimize.minimize(my_func,params,method='powell',options={'maxiter':100})  # use LLSq to fit linear function to wavelength (at this pixel) as function of MJD of arc
+                lsq = scipy.optimize.minimize(my_func,params,method='powell',options={'maxiter':100}) # use LLSq to fit linear function to wavelength (at this pixel) as function of MJD of arc
 #                        print(lsq.x,wav0,thar_mjd[thar_use],mjd,lsq.x[0]+lsq.x[1]*mjd,f(mjd))
-                wav.append(lsq.x[0]+lsq.x[1]*mjd)  # apply that function to get wavelength (at this pixel) at MJD of flat
+                wav.append(lsq.x[0]+lsq.x[1]*mjd)#apply that function to get wavelength (at this pixel) at MJD of flat
                 wav_rms.append(np.sqrt(np.mean((wav0-(lsq.x[0]+lsq.x[1]*mjd))**2)))
                 line_sigma.append(np.mean(line_sigma0))
 #                        wav.append(f(mjd))
             wav = np.array(wav)
             wav_rms = np.array(wav_rms)
             line_sigma = np.array(line_sigma)
+
     # line_sigma is function estimated based on stddev of gaussian fits to arc lines
-    return wavcal(wav=wav,nthar=len(np.where(thar_use==1)[0]),thar_rms=thar_rms,wav_rms=wav_rms,mjd=mjd,line_sigma=line_sigma)  
+    return wavcal(wav=wav,nthar=len(np.where(thar_use==1)[0]),thar_npoints=thar_npoints,thar_rms=thar_rms,wav_rms=wav_rms,mjd=mjd,line_sigma=line_sigma)
 
 
 def get_throughput_continuum(twilightstack_array,twilightstack_wavcal_array,continuum_rejection_low,
@@ -2598,13 +2616,16 @@ def get_thar(datadir,utdate,ccd,tharfile,hires_exptime,medres_exptime,field_name
     return(thar,lines,temperature,thar_exptime,thar_mjd)
     
 
-def get_hdul(data,skysubtract_array,sky_array,wavcal_array,plugmap,m2fsrun,field_name,thar,temperature):
+
+def get_hdul(data,skysubtract_array,sky_array,wavcal_array,plugmap,m2fsrun,field_name,thar,temperature,aperture_array,linelist):
     import numpy as np
+
     from astropy.io import fits
     from astropy import time, coordinates as coord, units as u
     from astropy.time import Time
     from astropy.coordinates import SkyCoord, EarthLocation
     import astropy.units as u
+    from copy import deepcopy
 
     data_array = []
     var_array = []
@@ -2617,22 +2638,51 @@ def get_hdul(data,skysubtract_array,sky_array,wavcal_array,plugmap,m2fsrun,field
     snratio_array = []
     thar_npoints_array = []
     thar_rms_array = []
+    thar_resolution_array = []
+    thar_wav_min_array = []
+    thar_wav_max_array = []
     temperature_array = []
+    row_array = []
 
-    s = ','
+    temperature0 = []
+    for i in range(0,len(temperature)):
+        temperature0.append(float(temperature[i]))
+
     for i in range(0,len(plugmap)):
-        temperature_array.append(s.join(temperature))
+        temperature_array.append(temperature0)
         thar_npoints = []
         thar_rms = []
+        thar_resolution = []
+        thar_wav_min = []
+        thar_wav_max = []
         for j in range(0,len(thar)):
             this = np.where([thar[j][q].aperture for q in range(0,len(thar[j]))]==plugmap['aperture'][i])[0]
             if len(this)>0:
-                thar_npoints.append(str(thar[j][this[0]].npoints))
-                thar_rms.append(str(thar[j][this[0]].rms))
-        string1 = s.join(thar_npoints)
-        string2 = s.join(thar_rms)
-        thar_npoints_array.append(string1)
-        thar_rms_array.append(string2)
+                thar_npoints.append(thar[j][this[0]].npoints)
+                thar_rms.append(thar[j][this[0]].rms)
+                thar_resolution0 = np.float(-999.)
+                thar_wav_min0 = np.float(-999.)
+                thar_wav_max0 = np.float(-999.)
+                if len(thar[j][this[0]].wav)>1:
+                    keep = np.where(thar[j][this[0]].wav.mask==False)[0]
+                    if len(keep)>1:
+                        dwav = np.max(thar[j][this[0]].wav[keep])-np.min(thar[j][this[0]].wav[keep])
+                        dpix = np.max([thar[j][this[0]].fit_lines.fit[q].mean.value for q in keep])-np.min([thar[j][this[0]].fit_lines.fit[q].mean.value for q in keep])
+                        central_wavelength = np.min(linelist.wavelength)+(np.max(linelist.wavelength)-np.min(linelist.wavelength))/2.
+#                        x = [thar[j][this[0]].fit_lines.fit[q].mean.value for q in keep]
+                        thar_resolution0 = thar[j][this[0]].resolution(np.interp(x=central_wavelength,xp=[thar[j][this[0]].wav[q] for q in keep],fp=[thar[j][this[0]].fit_lines.fit[q].mean.value for q in keep]))*dwav/dpix
+                        thar_wav_min0 = np.min(np.ma.compressed(thar[j][this[0]].wav))
+                        thar_wav_max0 = np.max(np.ma.compressed(thar[j][this[0]].wav))
+
+                thar_resolution.append(thar_resolution0)
+                thar_wav_min.append(thar_wav_min0)
+                thar_wav_max.append(thar_wav_max0)
+
+        thar_npoints_array.append(thar_npoints)
+        thar_rms_array.append(thar_rms)
+        thar_resolution_array.append(thar_resolution)
+        thar_wav_min_array.append(thar_wav_min)
+        thar_wav_max_array.append(thar_wav_max)
 
         if plugmap['objtype'][i]=='TARGET':
             coords = coord.SkyCoord(plugmap['ra'][i],plugmap['dec'][i],unit=(u.deg,u.deg),frame='icrs')
@@ -2648,13 +2698,20 @@ def get_hdul(data,skysubtract_array,sky_array,wavcal_array,plugmap,m2fsrun,field
             vheliocorr_array.append(0.)
         this = np.where([skysubtract_array[q].aperture for q in range(0,len(skysubtract_array))]==plugmap['aperture'][i])[0][0]
         snratio_array.append(np.median(skysubtract_array[this].spec1d_flux.value[skysubtract_array[this].spec1d_mask==False]/skysubtract_array[this].spec1d_uncertainty.quantity.value[skysubtract_array[this].spec1d_mask==False]))
-
+        this = np.where([aperture_array[q].trace_aperture for q in range(0,len(aperture_array))]==plugmap['aperture'][i])[0][0]
+        row = aperture_array[this].trace_func(np.float(len(data.data[0])/2.))
+        row_array.append(row)
     snratio_array = np.array(snratio_array)
     m2fsrun_array = np.full(len(snratio_array),m2fsrun,dtype='a100')
     field_name_array = np.full(len(snratio_array),field_name,dtype='a100')
-    thar_npoints_array = np.array(thar_npoints_array)
-    thar_rms_array = np.array(thar_rms_array)
-    temperature_array = np.array(temperature_array)
+    thar_npoints_array = np.array(thar_npoints_array,dtype=np.object_)
+    thar_rms_array = np.array(thar_rms_array,dtype=np.object_)
+    thar_resolution_array = np.array(thar_resolution_array,dtype=np.object_)
+    thar_wav_min_array = np.array(thar_wav_min_array,dtype=np.object_)
+    thar_wav_max_array = np.array(thar_wav_max_array,dtype=np.object_)
+    temperature_array = np.array(temperature_array,dtype=np.object_)
+    row_array = np.array(row_array)
+
 
     cols = fits.ColDefs([fits.Column(name='EXPID',format='A100',array=plugmap['expid']),
                          fits.Column(name='OBJTYPE',format='A6',array=plugmap['objtype']),
@@ -2680,21 +2737,38 @@ def get_hdul(data,skysubtract_array,sky_array,wavcal_array,plugmap,m2fsrun,field
                          fits.Column(name='SNRATIO',format='d',array=snratio_array),
                          fits.Column(name='run_id',format='A100',array=m2fsrun_array),
                          fits.Column(name='field_name',format='A100',array=field_name_array),
-                         fits.Column(name='wav_npoints',format='A100',array=thar_npoints_array),
-                         fits.Column(name='wav_rms',format='A100',array=thar_rms_array),
-                         fits.Column(name='temperature',format='A100',array=temperature_array)])
+                         fits.Column(name='wav_npoints',format='PI()',array=thar_npoints_array),
+                         fits.Column(name='wav_rms',format='PD()',array=thar_rms_array),
+                         fits.Column(name='wav_resolution',format='PD()',array=thar_resolution_array),
+                         fits.Column(name='wav_min',format='PD()',array=thar_wav_min_array),
+                         fits.Column(name='wav_max',format='PD()',array=thar_wav_max_array),
+                         fits.Column(name='row',format='D',array=row_array),
+                         fits.Column(name='temperature',format='PD()',array=temperature_array)])
     table_hdu = fits.FITS_rec.from_columns(cols)
 
     if len(skysubtract_array)>0:
         for i in range(0,len(plugmap)):
-#        for k in range(0,128):
             this = np.where(np.array([skysubtract_array[q].aperture for q in range(0,len(skysubtract_array))])==plugmap['aperture'][i])[0]
-#            this = np.where(np.array([skysubtract_array[q].aperture for q in range(0,len(skysubtract_array))])==k+1)[0]
             if len(this)>0:
+                mask0 = deepcopy(skysubtract_array[this[0]].spec1d_mask)
+                if len(np.where(skysubtract_array[this[0]].spec1d_mask==False)[0])>0:   # mask pixels outside valid extrapolation region of wavelength solution
+                    best = np.where(thar_npoints_array[i]==np.max(thar_npoints_array[i]))[0]
+                    spec_range = thar_wav_max_array[i][best]-thar_wav_min_array[i][best]
+                    best2 = np.where(spec_range==np.min(spec_range))[0][0]
+                    if thar_npoints_array[i][best[best2]]==0:
+                        print(thar_npoints_array[i],this,wavcal_array[this[0]].wav)
+                        np.pause()
+#                    if thar_npoints_array[i][best[best2]]>0:###why are there unmasked cases where thar_npoints=0 and/or wavcal.wav=[]
+#                        if len(wavcal_array[this[0]].wav)>0:
+                    extra = (thar_wav_max_array[i][best[best2]]-thar_wav_min_array[i][best[best2]])/np.float(thar_npoints_array[i][best[best2]])
+                    lambdamin = thar_wav_min_array[i][best[best2]]-extra
+                    lambdamax = thar_wav_max_array[i][best[best2]]+extra
+#                            print(wavcal_array[this[0]].wav)
+                    new_mask = np.where((wavcal_array[this[0]].wav<lambdamin)|(wavcal_array[this[0]].wav>lambdamax))[0]
+                    mask0[new_mask] = True
                 data_array.append(skysubtract_array[this[0]].spec1d_flux.value)
                 var_array.append(skysubtract_array[this[0]].spec1d_uncertainty.quantity.value**2)
-                mask_array.append(skysubtract_array[this[0]].spec1d_mask)
-#                print(this,len(sky_array),len(skysubtract_array),plugmap['aperture'][i])
+                mask_array.append(mask0)
                 sky.append(sky_array[this[0]].spec1d_flux)
                 if len(wavcal_array[this[0]].wav)>0:
                     wav_array.append(wavcal_array[this[0]].wav)
@@ -2754,8 +2828,9 @@ def getfromfits(hdul):
 
     class fitsobject:
         def __init__(self,radeg=None,decdeg=None,wav=None,spec=None,var=None,mask=None,sky_spec=None,obj=None,icode=None,
-                     mjd=None,hjd=None,snratio=None,vheliocorr=None,header=None,filtername=None,channel=None,
-                     aperture=None,run_id=None,field_name=None,wav_npoints=None,wav_rms=None,temperature=None):
+                     mjd=None,hjd=None,snratio=None,vheliocorr=None,header=None,filtername=None,channel=None,aperture=None,
+                     run_id=None,field_name=None,wav_npoints=None,wav_rms=None,wav_resolution=None,wav_min=None,wav_max=None,
+                     row=None,temperature=None):
             self.radeg = radeg
             self.decdeg = decdeg
             self.wav = wav
@@ -2777,6 +2852,10 @@ def getfromfits(hdul):
             self.field_name = field_name
             self.wav_npoints = wav_npoints
             self.wav_rms = wav_rms
+            self.wav_resolution=wav_resolution
+            self.wav_min=wav_min
+            self.wav_max=wav_max
+            self.row=row
             self.temperature = temperature
 #    nddata = astropy.nddata.CCDData.read(fitsfile[i],unit=u.electron)
 #    hdul = fits.open(fitsfile)
@@ -2814,10 +2893,13 @@ def getfromfits(hdul):
     filtername = []
     run_id = []
     field_name = []
-    tempreature = []
-    wav_npoints = []
-    wav_rms = []
-    temperature = []
+    wav_npoints=[]
+    wav_rms=[]
+    wav_resolution=[]
+    wav_min=[]
+    wav_max=[]
+    row=[]
+    temperature=[]
     for j in range(0,len(obj)):
         ra,dec = fiber[j]['RA'],fiber[j]['DEC']
         radeg.append(ra)
@@ -2831,9 +2913,13 @@ def getfromfits(hdul):
         filtername.append(fiber[j]['RESOLUTION'])
         run_id.append(fiber[j]['RUN_ID'])
         field_name.append(fiber[j]['FIELD_NAME'])
-#        wav_npoints.append(fiber[j]['WAV_NPOINTS'])
-#        wav_rms.append(fiber[j]['WAV_RMS'])
-#        temperature.append(fiber[j]['TEMPERATURE'])
+        wav_npoints.append(fiber[j]['WAV_NPOINTS'])
+        wav_rms.append(fiber[j]['WAV_RMS'])
+        wav_resolution.append(fiber[j]['WAV_RESOLUTION'])
+        wav_min.append(fiber[j]['WAV_MIN'])
+        wav_max.append(fiber[j]['WAV_MAX'])
+        row.append(fiber[j]['ROW'])
+        temperature.append(fiber[j]['TEMPERATURE'])
         if obj[j]=='TARGET':
             coords = coord.SkyCoord(ra,dec,unit=(u.deg,u.deg),frame='icrs')
             lco = coord.EarthLocation.from_geodetic(lon=-70.6919444*u.degree,lat=-29.0158333*u.degree,height=2380.*u.meter)
@@ -2852,15 +2938,19 @@ def getfromfits(hdul):
     filtername = np.array(filtername)
     run_id = np.array(run_id)
     field_name = np.array(field_name)
-    wav_npoints = np.array(wav_npoints)
-    wav_rms = np.array(wav_rms)
-    temperature = np.array(temperature)
+    wav_npoints = np.array(wav_npoints,dtype=np.object_)
+    wav_rms = np.array(wav_rms,dtype=np.object_)
+    wav_resolution = np.array(wav_resolution,dtype=np.object_)
+    wav_min = np.array(wav_min,dtype=np.object_)
+    wav_max = np.array(wav_max,dtype=np.object_)
+    row = np.array(row)
+    temperature = np.array(temperature,dtype=np.object_)
     header = hdul[0].header
 
     return fitsobject(radeg=radeg,decdeg=decdeg,wav=wav,spec=skysub,var=var,mask=mask,sky_spec=sky_spec,obj=obj,
                       icode=icode,mjd=mjd,hjd=hjd,snratio=snratio,vheliocorr=vheliocorr,header=header,filtername=filtername,
                       channel=channel,aperture=aperture,run_id=run_id,field_name=field_name,wav_npoints=wav_npoints,
-                      wav_rms=wav_rms,temperature=temperature)
+                      wav_rms=wav_rms,wav_resolution=wav_resolution,wav_min=wav_min,wav_max=wav_max,row=row,temperature=temperature)
 
 
 def multinest(fit_directory,root,targets,fitsobject,npix):
@@ -3083,4 +3173,33 @@ def get_plot_resolution(thar,root0):
     plt.close()
     return
 
-#  LocalWords:  LinearLSQFitter
+
+def get_mapflat_compare(apertures_profile_middle,map_apertures_profile_middle,mapflat_compare_iterations,mapflat_compare_order):
+    import numpy as np
+    import scipy
+    from astropy.modeling import models,fitting
+    import matplotlib.pyplot as plt
+
+    keep = np.where(apertures_profile_middle.realvirtual)[0]
+    x = np.array([apertures_profile_middle.fit[q].mean.quantity.value for q in keep])
+    y = np.ma.masked_array([map_apertures_profile_middle.fit[q].mean.quantity.value for q in keep],mask=np.full(len(x),False,dtype='bool'))
+    bad = np.where(map_apertures_profile_middle.realvirtual==False)[0]
+    y.mask[bad] = True
+    map_flat_compare_iterations = 10
+    mapflat_compare_order = 4
+    mapflat_compare_init = models.Polynomial1D(degree=mapflat_compare_order)
+    mapflat_compare_fitter = fitting.LinearLSQFitter()
+    mapflat_compare_func = mapflat_compare_init
+    use = np.where(y.mask==False)[0]
+    mapflat_compare_rms = np.sqrt(np.mean((y[use]-mapflat_compare_func(x[use]))**2))
+    for q in range(0,map_flat_compare_iterations):
+        use = np.where(y.mask==False)[0]
+        if len(use)>3.:
+            mapflat_compare_func = mapflat_compare_fitter(mapflat_compare_init,x[use],y[use])
+            mapflat_compare_rms = np.sqrt(np.mean((y[use]-mapflat_compare_func(x[use]))**2))
+            outlier = (np.where(np.abs(y-mapflat_compare_func(x))>3.*mapflat_compare_rms))[0]    # reject outliers
+            y.mask[outlier] = True
+    use = np.where(y.mask==False)[0]
+    mapflat_compare_npoints = len(use)
+    return mapflat_compare(mapflat_compare_func,mapflat_compare_rms,mapflat_compare_npoints)
+
