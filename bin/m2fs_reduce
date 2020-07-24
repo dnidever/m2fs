@@ -4,6 +4,7 @@ import numpy as np
 import astropy
 from astropy.io import fits
 import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 #from astropy.nddata import NDData
 from astropy.nddata import CCDData
@@ -11,11 +12,11 @@ import ccdproc
 import astropy.units as u
 from astropy.modeling import models
 from ccdproc import Combiner
+from argparse import ArgumentParser
 import os
-import mycode
-from . import process as m2fs
+from m2fs import utils
+from m2fs import process as m2fs
 from astropy.nddata import StdDevUncertainty
-matplotlib.use('TkAgg')
 
 
 if __name__ == "__main__":
