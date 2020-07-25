@@ -21,17 +21,33 @@ from astropy.nddata import StdDevUncertainty
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Process M2FS image (overscan/bias/dark/stitch).')
-    parser.add_argument('datadir', type=str, nargs=1, help='M2FS raw directory')
-    parser.add_argument('rawlist', type=str, nargs=1, help='Raw input file)')
+    parser.add_argument('listfile', type=str, nargs=1, help='Input list of bias frames')
+    parser.add_argument('-d','--datadir', type=str, nargs=1, default='', help='M2FS raw directory')
+    parser.add_argument('--tag', type=str, nargs=1, default = '', help='Short name (e.g., jan20)')
     args = parser.parse_args()
 
-    datadir = args.datadir[0]
-    rawlist = args.rawlist[0]
+    # Get the input parameters
+    datadir = args.datadir
+    if isinstance(datadir,list): datadir=datadir[0]
+    if datadir=='':
+        # use current directory
+        datadir = os.path.abspath(os.path.curdir)+'/'
+    listfile = args.listfile
+    if isinstance(listfile,list): listfile=listfile[0]
+    if os.path.dirname(listfile)=='':   # relative path
+        listfile = datadir+listfile
+    tag = args.tag
+    if isinstance(tag,list): tag=tag[0]
+    if tag=='':
+        tag = os.path.basename(listfile).split('_')[0]
 
-    #directory = '/nfs/nas-0-9/mgwalker.proj/m2fs/'
-    #m2fsrun = 'jan20' 
-    #datadir = m2fs.get_datadir(m2fsrun)
-    #datadir = directory+runtag
+    print('Input list = '+listfile)
+    print('Datadir = '+datadir)
+    print('Tag = '+tag)
+
+    # Check that input list file exists
+    if os.path.exists(listfile) == False:
+        raise ValueError(listfile+' NOT FOUND')
     
     utdate = []
     file1 = []
@@ -41,10 +57,10 @@ if __name__ == "__main__":
     field_name = []
     scifile = []
 
-    if os.path.exists(rawlist) == False:
-        raise ValueError(rawlist+' NOT FOUND')
+    if os.path.exists(listfile) == False:
+        raise ValueError(listfile+' NOT FOUND')
     
-    with open(rawlist) as f:
+    with open(listfile) as f:
         data = f.readlines()[0:]
     for line in data:
         p = line.split()
@@ -79,19 +95,26 @@ if __name__ == "__main__":
     scifile0 = np.array(scifile0,dtype='object')
     allfile0 = np.array(allfile0,dtype='object')
 
+    # Date loop
+    count = 1
     for i in range(0,len(utdate)):
+        # File loop
         for j in allfile0[i]:
+            # Arm/ccd loop
             for ccd in (['b','r']):
-                out = datadir+utdate[i]+'/'+ccd+str(j).zfill(4)+'_stitched.fits'
+                outfile = datadir+utdate[i]+'/'+ccd+str(j).zfill(4)+'_stitched.fits'
+                print(str(count),datadir+utdate[i]+'/'+ccd+str(j).zfill(4))
+                # Amplifier loop
                 for chip in (['c1','c2','c3','c4']):
 
-                    master_bias = astropy.nddata.CCDData.read(directory+m2fsrun+'_'+ccd+'_'+chip+'_master_bias.fits')
+                    master_bias = astropy.nddata.CCDData.read(datadir+tag+'_'+ccd+'_'+chip+'_master_bias.fits')
                     obs_readnoise = np.float(master_bias.header['obs_rdnoise'])
-                    master_dark = astropy.nddata.CCDData.read(directory+ccd+'_'+chip+'_master_dark.fits')
+                    master_dark = astropy.nddata.CCDData.read(datadir+ccd+'_'+chip+'_master_dark.fits')
                     filename = datadir+utdate[i]+'/'+ccd+str(j).zfill(4)+chip+'.fits'
+                    if os.path.exists(filename) == False: filename += '.gz'
 
                     data = astropy.nddata.CCDData.read(filename,unit=u.adu)  # header is in data.meta
-                    print(filename,data.header['object'],data.header['binning'])
+                    print('  '+filename,data.header['object'],data.header['binning'])
 
                     oscan_subtracted = ccdproc.subtract_overscan(data,overscan=data[:,1024:],overscan_axis=1,
                                                                  model=models.Polynomial1D(3),add_keyword={'oscan_corr':'Done'})
@@ -122,10 +145,10 @@ if __name__ == "__main__":
                     if chip=='c4':
                         c4_reduce = gain_corrected
 
-                left_data = np.concatenate((c1_reduce,np.flipud(c4_reduce)),axis=0)#left half of stitched image
+                left_data = np.concatenate((c1_reduce,np.flipud(c4_reduce)),axis=0)  # left half of stitched image
                 left_uncertainty = np.concatenate((c1_reduce.uncertainty._array,np.flipud(c4_reduce.uncertainty._array)),axis=0)
                 left_mask = np.concatenate((c1_reduce.mask,np.flipud(c4_reduce.mask)),axis=0)
-                right_data = np.concatenate((np.fliplr(c2_reduce),np.fliplr(np.flipud(c3_reduce))),axis=0)#right half of stitched image
+                right_data = np.concatenate((np.fliplr(c2_reduce),np.fliplr(np.flipud(c3_reduce))),axis=0)  # right half of stitched image
                 right_uncertainty = np.concatenate((np.fliplr(c2_reduce.uncertainty._array),
                                                     np.fliplr(np.flipud(c3_reduce.uncertainty._array))),axis=0)
                 right_mask = np.concatenate((np.fliplr(c2_reduce.mask),np.fliplr(np.flipud(c3_reduce.mask))),axis=0)
@@ -138,6 +161,7 @@ if __name__ == "__main__":
                                                   uncertainty=StdDevUncertainty(stitched_uncertainty),mask=stitched_mask)
 
                 stitched.header = c1_reduce.header
-                stitched.write(out,overwrite = True)
-
+                print('Writing to '+outfile)
+                stitched.write(outfile,overwrite=True)
+                count += 1
 
