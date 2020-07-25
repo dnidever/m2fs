@@ -710,7 +710,7 @@ def get_cr_reject(spec1d,cr_rejection_low,cr_rejection_high,cr_rejection_order,c
 
 def column_stack(data,col):
     import numpy as np
-    import mycode
+    from . import utils
     from ccdproc import Combiner
     import astropy.units as u
     import specutils
@@ -731,7 +731,7 @@ def column_stack(data,col):
     sig_stack = np.array(sig_stack)
     c = Combiner(stack)
     c.weights = 1./sig_stack**2
-    comb = c.average_combine(uncertainty_func=mycode.stdmean)
+    comb = c.average_combine(uncertainty_func=utils.stdmean)
     lamb = np.arange(len(comb.data),dtype='float')  # unit is pixels, but specutils apparently can't handle that, so we lie and say Angs.
     spec1d = Spectrum1D(flux=np.array(comb.data)*u.electron,spectral_axis=lamb*u.AA,uncertainty=comb.uncertainty,mask=comb.mask)
     return spec1d
