@@ -1,0 +1,341 @@
+#!/usr/bin/env python
+
+import astropy
+import dill as pickle
+from astropy import units
+from astropy.io import fits
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+from astropy.nddata import NDData
+from astropy.nddata import CCDData
+from astropy.nddata import Cutout2D
+from astropy.nddata import NDDataRef
+import astropy.units as u
+from astropy.modeling import models
+from . import process as m2fs
+from . import utils
+from . import apertures as ap
+import os
+from os import path
+import specutils
+from specutils.spectra import Spectrum1D
+import scipy
+from astropy.nddata import StdDevUncertainty
+from astropy.visualization import quantity_support
+import numpy as np
+from specutils.fitting import fit_lines
+from specutils.analysis import centroid
+from specutils.analysis import fwhm
+from specutils.analysis import line_flux
+from specutils.analysis import equivalent_width
+from specutils import SpectralRegion
+from specutils.manipulation import extract_region
+from specutils.fitting import fit_generic_continuum
+from astropy.modeling import models,fitting
+from specutils.fitting import estimate_line_parameters
+from ccdproc import Combiner
+from scipy import interpolate
+from astropy import time, coordinates as coord, units as u
+from astropy.coordinates import SkyCoord, EarthLocation
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
+shite = False
+trim = False  # define boundaries of useful spectral region
+initialize = False
+find = False  # find apertures in image
+trace_all = False  # trace all apertures
+trace_edit = False  # edit traces of individual apertures
+make_image = False  # generate PDF of data frame with aperture traces overlaid
+apmask = False  # mask apertures to create 2d data frame containing only extra-aperture light
+apflat = False
+apflatcorr = False
+scatteredlightcorr = False  # fit 2d function to extra-aperture light and subtract from data frame
+extract1d_flat = False  # extract 1d spectra for flat frames
+extract1d_thar = False  # extract 1d spectra for thar frames
+extract1d_sci = False  # extract 1d spectra for science frames
+id_lines_template = False  # identify lines in thar template and fit wavelength solution
+id_lines_translate = False
+id_lines_check = False
+tharcheck = False
+plot_resolution = False
+wavcal = False
+cr_reject = False
+stack_twilight = False
+throughputcorr = False  # perform throughput correction (wavelength-dependent)
+plugmap = True
+skysubtract = True
+stack_frames = True
+sky_target_check = False
+writefits = True
+overwrite = True  # overwrite previous results
+cheat_id_lines_translate = False
+check = False
+
+# linelist_file = '/nfs/nas-0-9/mgwalker.proj/m2fs/m2fs_config1b_thar_list'
+lco = coord.EarthLocation.from_geodetic(lon=-70.6919444*u.degree,lat=-29.0158333*u.degree,height=2380.*u.meter)
+threshold_factor = 25.  # multiple of continuum residual rms threshold to impose for aperture detection in find_lines_derivative
+n_lines = 20  # columns to combine when scanning across rows to identify apertures (as 'emission lines')
+columnspec_continuum_rejection_low = -5.
+columnspec_continuum_rejection_high = 1.
+columnspec_continuum_rejection_iterations = 10  # number of iterations of outlier rejection for fitting "continuum"
+columnspec_continuum_rejection_order = 10
+profile_rejection_iterations = 10  # number of iterations of outlier rejection for fitting profile amplitude and sigma
+profile_nsample = 50  # number of points along spectral- (x-) axis at which to measure profile amplitude and sigma before performing fit of amplitude(x) and sigma(x)
+profile_order = 4  # order of polynomial used to fit profile amplitude and sigma as functions of pixel along dispersion direction
+window = 10  # pixels, width of aperture window for fitting (gaussian) aperture profiles (perpendicular to spectral axis)
+trace_step = n_lines  # tracing step
+trace_nlost_max = 2
+trace_shift_max = 1.5
+trace_order = 4
+trace_rejection_iterations = 10
+trace_rejection_sigma = 3.  # largest rms deviation to accept in fit to aperture trace
+trace_rejection_iterations = 10
+id_lines_continuum_rejection_low = -5.
+id_lines_continuum_rejection_high = 1.
+id_lines_continuum_rejection_sigma = 3.
+id_lines_continuum_rejection_iterations = 10  # number of iterations of outlier rejection for fitting "continuum"
+id_lines_continuum_rejection_order = 10
+id_lines_threshold_factor = 10.  # multiple of continuum residual rms threshold to impose for aperture detection in find_lines_derivative
+id_lines_window = 5.  # pixels, width of aperture window for fitting (gaussian) line profiles in arc spectra
+id_lines_order = 5  # order of wavelength solution
+id_lines_tol_angs = 0.05  # tolerance for finding new lines to add from linelist (Angstroms)
+id_lines_tol_pix = 2.  # tolerance for matching lines between template and new spectrum (pixels)
+id_lines_minlines_hires = 25  # mininum number of ID'd lines for acceptable wavelength solution (less than this, and cannot fit reliable throughput correction and beyond)
+id_lines_minlines_medres = 15  # mininum number of ID'd lines for acceptable wavelength solution (less than this, and cannot fit reliable throughput correction and beyond)
+resolution_order = 1
+resolution_rejection_iterations = 10
+scatteredlightcorr_order = 4
+scatteredlightcorr_rejection_iterations = 10
+scatteredlightcorr_rejection_sigma = 3.
+id_lines_translate_add_lines_iterations = 5
+extract1d_aperture_width = 3.  # maximum (half-)width of aperture for extraction (too large and we get weird edge effects)
+throughputcorr_continuum_rejection_low = -1.
+throughputcorr_continuum_rejection_high = 3.
+throughputcorr_continuum_rejection_iterations = 5  # number of iterations of outlier rejection for fitting "continuum"
+throughputcorr_continuum_rejection_order = 4
+cr_rejection_low = -2.
+cr_rejection_high = 3.
+cr_rejection_order = 4
+cr_rejection_iterations = 5
+cr_rejection_tol = 5.  # multiple of rms residual above fit to flag as CR
+cr_rejection_collateral = 2  # number of pixels adjacent to CR-flagged pixel to mask
+hires_exptime = 29.
+medres_exptime = 10.
+use_flat = True
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description='Extract the 1D spectra from 2D M2FS images.')
+    parser.add_argument('listfile', type=str, nargs=1, help='Input list of science frames')
+    parser.add_argument('-d','--datadir', type=str, nargs=1, default='', help='M2FS raw directory')
+    parser.add_argument('--tag', type=str, nargs=1, default = '', help='Short name (e.g., jan20)')
+    args = parser.parse_args()
+
+    # Get the input parameters
+    datadir = args.datadir
+    if isinstance(datadir,list): datadir=datadir[0]
+    if datadir=='':
+        # use current directory
+        datadir = os.path.abspath(os.path.curdir)+'/'
+    listfile = args.listfile
+    if isinstance(listfile,list): listfile=listfile[0]
+    if os.path.dirname(listfile)=='':   # relative path
+        listfile = datadir+listfile
+    tag = args.tag
+    if isinstance(tag,list): tag=tag[0]
+    if tag=='':
+        tag = os.path.basename(listfile).split('_')[0]
+
+    print('Input list = '+listfile)
+    print('Datadir = '+datadir)
+    print('Tag = '+tag)
+
+    # Check that input list file exists
+    if os.path.exists(listfile) == False:
+        raise ValueError(listfile+' NOT FOUND')
+
+
+
+    #directory = '/nfs/nas-0-9/mgwalker.proj/m2fs/'
+    #m2fsrun = '[enter_run_here]'
+    #datadir = m2fs.get_datadir(m2fsrun)
+
+    edit_header_filename = []
+    edit_header_keyword = []
+    edit_header_value = []
+    with open(directory+'edit_headers') as f:
+        data = f.readlines()[0:]
+    for line in data:
+        p = line.split()
+        edit_header_filename.append(p[0])
+        edit_header_keyword.append(p[1])
+        edit_header_value.append(p[2])
+    edit_header_filename = np.array(edit_header_filename)
+    edit_header_keyword = np.array(edit_header_keyword)
+    edit_header_value = np.array(edit_header_value)
+    for i in range(0,len(edit_header_filename)):
+        print('editing header for ',edit_header_filename[i])
+        fits.setval(edit_header_filename[i]+'_stitched.fits',edit_header_keyword[i],value = edit_header_value[i])
+
+    # Load the list of science images
+    utdate = []
+    file1 = []
+    file2 = []
+    flatfile = []
+    tharfile = []
+    field_name = []
+    scifile = []
+    fibermap_file = []
+    fiber_changes = []
+    obj = []
+
+    with open(listfile) as f:
+        data = f.readlines()[0:]
+    for line in data:
+        p = line.split()
+        if p[0] != 'none':
+            utdate.append(str(p[0]))
+            file1.append(int(p[1]))
+            file2.append(int(p[2]))
+            flatfile.append(p[3])
+            tharfile.append(p[4])
+            field_name.append(p[5])
+            scifile.append(p[6])
+            fibermap_file.append(p[7])
+            fiber_changes.append(p[8])
+            obj.append(p[9])
+    utdate = np.array(utdate)
+    file1 = np.array(file1)
+    file2 = np.array(file2)
+    flatfile = np.array(flatfile)
+    tharfile = np.array(tharfile)
+    field_name = np.array(field_name)
+    scifile = np.array(scifile)
+    fibermap_file = np.array(fibermap_file)
+    fiber_changes = np.array(fiber_changes)
+    obj = np.array(obj)
+
+    flatfile0 = []
+    tharfile0 = []
+    scifile0 = []
+    allfile0 = []
+    fiber_changes0 = []
+    for i in range(0,len(tharfile)):
+        flatfile0.append(flatfile[i].split('-'))
+        tharfile0.append(tharfile[i].split('-'))
+        scifile0.append(scifile[i].split('-'))
+        allfile0.append(flatfile[i].split('-')+tharfile[i].split('-')+scifile[i].split('-'))
+        fiber_changes0.append(fiber_changes[i].split(','))
+    flatfile0 = np.array(flatfile0,dtype='object')
+    tharfile0 = np.array(tharfile0,dtype='object')
+    scifile0 = np.array(scifile0,dtype='object')
+    allfile0 = np.array(allfile0,dtype='object')
+    #fiber_changes0 = np.array(fiber_changes0,dtype='str')
+
+
+    # ID the template lines
+    if id_lines_template is True: apertures.id_lines_template(XX)
+    # Check the line IDs
+    if id_lines_check is True: apertures.id_lines_check()
+
+
+    # Date loop
+    for i in range(0,len(utdate)):
+        # Arm loop
+        for ccd in ('r','b'):
+            root = datadir+utdate[i]+'/'+ccd+str(flatfile[i]).zfill(4)
+            root2 = datadir+utdate[i]+'/'+ccd+'_'+field_name[i]+'_'+tag
+            data_file = root+'_stitched.fits'
+            image_boundary_file = root+'_image_boundary.pickle'
+            columnspec_array_file = root+'_columnspec_array.pickle'
+            apertures_profile_middle_file = root+'_apertures_profile_middle.pickle'
+            aperture_array_file = root+'_aperture_array.pickle'
+            image_file = root+'_apertures2d.pdf'
+            find_apertures_file = root+'_find_apertures.pdf'
+            apmask_file = root+'_apmask.pickle'
+            apflat_file = root+'_apflat.pickle'
+            apflat_residual_file = root+'_apflat_residual.pickle'
+            extract1d_array_flat_file = root+'_extract1d_array.pickle'
+            thars_array_file = root2+'_thars_array.pickle'
+            thars_plot_file = root2+'_thars.pdf'
+            throughput_continuum_file = root+'_throughput_continuum.pickle'
+            stack_array_file = root2+'_stack_array.pickle'
+            stack_fits_file = root2+'stackskysub.fits'
+            twilightstack_array_file = root2+'_twilightstack_array.pickle'
+            twilightstack_fits_file = root2+'_twilightstack.fits'
+            stack_skysub_file = root2+'_stackskysub.dat'
+            sky_target_check_file = root2+'_sky_target_check.pdf'
+
+            image_boundary_exists = path.exists(image_boundary_file)
+            columnspec_array_exists = path.exists(columnspec_array_file)
+            apertures_profile_middle_exists = path.exists(apertures_profile_middle_file)
+            aperture_array_exists = path.exists(aperture_array_file)
+            apmask_exists = path.exists(apmask_file)
+            apflat_exists = path.exists(apflat_file)
+            apflat_residual_exists = path.exists(apflat_residual_file)
+            thars_array_exists = path.exists(thars_array_file)
+            throughput_continuum_exists = path.exists(throughput_continuum_file)
+            stack_array_exists = path.exists(stack_array_file)
+            stack_fits_exists = path.exists(stack_fits_file)
+            twilightstack_array_exists = path.exists(twilightstack_array_file)
+            twilightstack_fits_exists = path.exists(twilightstack_fits_file)
+            sky_target_check_exists = path.exists(sky_target_check_file)
+
+        
+            if shite: ap.shite()
+
+            if trim: ap.trim()
+
+            if initialize: ap.initialize()
+
+            if find: ap.find()
+
+            if trace_all: ap.trace_all()
+
+            if trace_edit: ap.trace_edit()
+
+            if make_image: ap.make_image()
+
+            # Make aperture mask for, root
+            if apmask: ap.apmask()
+            # Make apflat for, root
+            if apflat: ap.apflate()
+
+            if apflatcorr: ap.apflatcorr()
+
+            if scatteredlightcorr: ap.scatteredlightcorr()
+
+            if extract1d_flat: ap.extract1d_flat()
+
+            if extract1d_thar: ap.extract1d_thar()
+
+            if extract1d_sci: ap.extract1d_sci()
+            
+            if id_lines_translate: ap.id_lines_translate()
+            
+            if plot_resolution: ap.plot_resolution)
+
+            if tharcheck: ap.tharcheck()
+
+            if wavcal: ap.wavecal()
+
+            if cr_reject: ap.cr_reject()
+
+            if stack_twilight: ap.stack_twilight()
+            
+            if throughputcorr: ap.throughputcorr()
+
+            if plugmap: ap.plugmap()
+
+            if skysubtract: ap.skysubtract()
+
+            if stack_frames: ap.stack_frames()
+
+            if sky_target_check: ap.sky_target_check()
+
+            if writefits: ap.writefits()
+
+            if cheat_id_lines_translate: ap.check_id_lines_translate()
+
+            if check: ap.check()
