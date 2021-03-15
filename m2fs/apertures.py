@@ -207,6 +207,7 @@ def shite(a):
 
     np.pause()
 
+
 def trim(a):
     print('displaying '+root)
     data = astropy.nddata.CCDData.read(data_file)  # format is such that data.data[:,0] has column-0 value in all rows
@@ -221,10 +222,16 @@ def trim(a):
         image_boundary = m2fs.get_image_boundary(data,image_boundary_fiddle,image_boundary0)
         pickle.dump(image_boundary,open(image_boundary_file,'wb'))  # save pickle to file
 
-def initialize():
+
+def initialize(root,trace_step=20,n_lines=20,columnspec_continuum_rejection_low=-5.,columnspec_continuum_rejection_high=1.0,
+               columnspec_continuum_rejection_iterations=10,columnspec_continuum_rejection_order=10,threshold_factor=25.0,
+               window=10,overwrite=True):
     # find apertures in each column stack and save to pickle files
-    print('initializing '+root)
-    if (not(columnspec_array_exists))|(columnspec_array_exists & overwrite):
+    print('initializing '+root) 
+    data_file = root+'_stitched.fits'
+    columnspec_array_file = root+'_columnspec_array.pickle'
+    columnspec_array_exists = os.path.exists(columnspec_array_file)
+    if (not(columnspec_array_exists)) | (columnspec_array_exists & overwrite):
         if columnspec_array_exists:
             print('will overwrite existing '+columnspec_array_file)
         data = astropy.nddata.CCDData.read(data_file)  # format is such that data.data[:,0] has column-0 value in all rows
@@ -243,21 +250,26 @@ def initialize():
         '''
         pickle.dump(columnspec_array,open(columnspec_array_file,'wb'))  # save pickle to file
 
-def find(a):
+def find(root,window=5,overwrite=True):
     print('finding apertures for '+root)
+    columnspec_array_file = root+'_columnspec_array.pickle'
     columnspec_array = pickle.load(open(columnspec_array_file,'rb'))
-            
+    
     '''
     Make initial array of more precise aperture location fits in middle column stack
     '''
-            
-    if ((apertures_profile_middle_exists)&(overwrite)):
+
+    apertures_profile_middle_file = root+'_apertures_profile_middle.pickle'
+    apertures_profile_middle_exists = os.path.exists(apertures_profile_middle_file)
+    find_apertures_file = root+'_find_apertures.pdf'
+
+    if ((apertures_profile_middle_exists) & (overwrite)):
         print('loading existing '+apertures_profile_middle_file+', will overwrite')
         apertures_profile_middle,middle_column = pickle.load(open(apertures_profile_middle_file,'rb'))
         apertures_profile_middle = m2fs.fiddle_apertures(columnspec_array,middle_column,window,apertures_profile_middle,find_apertures_file)
         pickle.dump([apertures_profile_middle,middle_column],open(apertures_profile_middle_file,'wb'))  # save pickle to file
 
-    elif(not(apertures_profile_middle_exists)):
+    elif (not(apertures_profile_middle_exists)):
         middle_column = np.long(len(columnspec_array)/2)
         apertures_profile_middle = columnspec_array[middle_column].apertures_profile
         apertures_profile_middle = m2fs.fiddle_apertures(columnspec_array,middle_column,window,apertures_profile_middle,find_apertures_file)
@@ -275,7 +287,8 @@ def find(a):
     display apertures initially identified in central column stack and allow user to add/delete apertures with screen input
     '''
 
-def trace_all(a):
+
+def trace_all(root):
     print('tracing all apertures for '+root)
     if (not(aperture_array_exists))|(aperture_array_exists & overwrite):
         if aperture_array_exists:
@@ -292,10 +305,15 @@ def trace_all(a):
             
         pickle.dump(aperture_array,open(aperture_array_file,'wb'))
 
-def trace_edit(a):
+
+def trace_edit(root):
+    image_boundary = root+'_image_boundary.pickle'
     image_boundary = pickle.load(open(image_boundary_file,'rb'))
+    columnspec_array_file = root+'_columnspec_array.pickle'
     columnspec_array = pickle.load(open(columnspec_array_file,'rb'))
+    apertures_profile_middle_file = root+'_apertures_profile_middle.pickle'
     apertures_profile_middle,middle_column = pickle.load(open(apertures_profile_middle_file,'rb'))
+    aperture_array_file = root+'_aperture_array.pickle'
     aperture_array = pickle.load(open(aperture_array_file,'rb'))
 
     command = input('enter number of aperture to edit (integer)')
@@ -306,7 +324,8 @@ def trace_edit(a):
 
     pickle.dump(aperture_array,open(aperture_array_file,'wb'))
 
-def make_image(a):
+
+def make_image(root):
     print('writing '+image_file)
     data = astropy.nddata.CCDData.read(data_file)  # format is such that data.data[:,0] has column-0 value in all rows
     columnspec_array = pickle.load(open(columnspec_array_file,'rb'))
@@ -322,8 +341,9 @@ def make_image(a):
             plt.plot(x,y,color='r',alpha=1,lw=0.2)
     plt.savefig(image_file,dpi=300)
     plt.close()
-            
-def apmask(a):
+
+
+def apmask(root):
     print('making aperture mask for ',root)
     if (not(apmask_exists))|(apmask_exists & overwrite):
         if overwrite:
@@ -339,7 +359,7 @@ def apmask(a):
 
         pickle.dump(apmask0,open(apmask_file,'wb'))            
 
-def apflat(a):
+def apflat(root):
     print('making apflat for ',root)
     if (not(apflat_exists))|(apflat_exists & overwrite):
         if overwrite:
@@ -355,7 +375,7 @@ def apflat(a):
         pickle.dump(apflat0,open(apflat_file,'wb'))            
         pickle.dump(apflat_residual,open(apflat_residual_file,'wb'))            
 
-def apflatcorr(a):
+def apflatcorr(allfile0):
     for j in range(0,len(allfile0[i])):
         root0 = datadir+utdate[i]+'/'+ccd+str(allfile0[i][j]).zfill(4)
         data_file = root0+'_stitched.fits'
@@ -377,7 +397,7 @@ def apflatcorr(a):
             print(data_file,apflat_file,apflatcorr_file)
             pickle.dump(apflatcorr0,open(apflatcorr_file,'wb'))            
 
-def scatteredlightcorr(a):
+def scatteredlightcorr(allfile0):
     for j in range(0,len(allfile0[i])):
         root0 = datadir+utdate[i]+'/'+ccd+str(allfile0[i][j]).zfill(4)
         data_file = root0+'_stitched.fits'
@@ -401,7 +421,8 @@ def scatteredlightcorr(a):
 
             pickle.dump(scatteredlightcorr0,open(scatteredlightcorr_file,'wb'))            
 
-def extract1d_flat(a):
+
+def extract1d_flat(flatfile0):
     for j in range(0,len(flatfile0[i])):
         root0 = datadir+utdate[i]+'/'+ccd+str(flatfile0[i][j]).zfill(4)
         data_file = root0+'_stitched.fits'
@@ -445,7 +466,8 @@ def extract1d_flat(a):
                 np.pause()
             pickle.dump(extract1d_array,open(extract1d_array_file,'wb'))
 
-def extract1d_thar(a):
+
+def extract1d_thar(tharfile0):
     for j in range(0,len(tharfile0[i])):
         root0 = datadir+utdate[i]+'/'+ccd+str(tharfile0[i][j]).zfill(4)
         data_file = root0+'_stitched.fits'
@@ -484,7 +506,8 @@ def extract1d_thar(a):
                     np.pause()
                 pickle.dump(extract1d_array,open(extract1d_array_file,'wb'))
 
-def extract1d_sci(a):
+
+def extract1d_sci(scifile0):
     for j in range(0,len(scifile0[i])):
         root0 = datadir+utdate[i]+'/'+ccd+str(scifile0[i][j]).zfill(4)
         data_file = root0+'_stitched.fits'
@@ -579,7 +602,7 @@ def id_lines_translate(a):
             pickle.dump(id_lines_array,open(id_lines_array_file,'wb'))
 
 
-def plot_resolution(a):
+def plot_resolution(root2):
     print('creating _resolution.pdf: \n'+root2)
     if (not(thars_array_exists))|(thars_array_exists & overwrite):
         if overwrite:
@@ -592,7 +615,7 @@ def plot_resolution(a):
         m2fs.get_plot_resolution(thar,root0)
 
 
-def tharcheck(a):
+def tharcheck(root2):
     print('creating thars_array: \n'+root2)
     if (not(thars_array_exists))|(thars_array_exists & overwrite):
         if overwrite:
@@ -671,7 +694,7 @@ def wavcal(a):
                 pickle.dump(wavcal_array,open(wavcal_array_file,'wb'))
 
 
-def cr_reject(a):
+def cr_reject(scifile0):
     for j in range(0,len(scifile0[i])):
         root0 = datadir+utdate[i]+'/'+ccd+str(scifile0[i][j]).zfill(4)
         extract1d_array_file = root0+'_extract1d_array.pickle'
@@ -693,7 +716,7 @@ def cr_reject(a):
             pickle.dump(cr_reject_array,open(cr_reject_array_file,'wb'))
 
 
-def stack_twilight(a):
+def stack_twilight(root2):
     if 'twilight' in field_name[i]:
         print('stacking twilight subexposures_array: \n'+root2)
 
@@ -861,7 +884,7 @@ def throughputcorr(a):
 #                                                weight = 1./np.abs(twilightstack_array_array_mjd[z]-mjd_mid)
                                                 if len(this)>1:
                                                     # the 0.001 is there to make sure we don't divide by zero. 
-                                                    weight = np.exp(-0.5*(twilightstack_array_array_mjd[z]-mjd_mid)**2/ \ 
+                                                    weight = np.exp(-0.5*(twilightstack_array_array_mjd[z]-mjd_mid)**2/ \
                                                                     (0.0001+np.max(twilightstack_array_array_mjd)-np.min(twilightstack_array_array_mjd))**2)
                                                 tz = twilightstack_array_array[z][this[z][0]]
                                                 sum1 += weight*np.interp(wavcal_array[k].wav[q],tz.wav[tz.spec1d_mask==False],
@@ -907,7 +930,7 @@ def throughputcorr(a):
 
 
 def plugmap(a):
-    if (('twilight' not in field_name[i])&('standard' not in field_name[i])):
+    if (('twilight' not in field_name[i]) & ('standard' not in field_name[i])):
         for j in range(0,len(scifile0[i])):
             root0 = datadir+utdate[i]+'/'+ccd+str(scifile0[i][j]).zfill(4)
             data_file = root0+'_stitched.fits'
@@ -941,7 +964,7 @@ def plugmap(a):
 
 
 def skysubtract(a):
-    if (('twilight' not in field_name[i])&('standard' not in field_name[i])):
+    if (('twilight' not in field_name[i]) & ('standard' not in field_name[i])):
         for j in range(0,len(scifile0[i])):
             root0 = datadir+utdate[i]+'/'+ccd+str(scifile0[i][j]).zfill(4)
 
@@ -1008,7 +1031,7 @@ def skysubtract(a):
 
 
 def stack_frames(a):
-    if (('twilight' not in field_name[i])&('standard' not in field_name[i])):
+    if (('twilight' not in field_name[i]) & ('standard' not in field_name[i])):
         print('stacking subexposures_array: \n'+root2)
         if (not(stack_array_exists))|(stack_array_exists & overwrite):
             if overwrite:
@@ -1075,7 +1098,7 @@ def stack_frames(a):
 
 
 def sky_target_check(a):
-    if (('twilight' not in field_name[i])&('standard' not in field_name[i])):
+    if (('twilight' not in field_name[i]) & ('standard' not in field_name[i])):
         print('creating sky_target sanity check: \n'+root2)
         if (not(sky_target_check_exists))|(sky_target_check_exists & overwrite):
             if overwrite:
@@ -1131,7 +1154,7 @@ def sky_target_check(a):
 
 
 def writefits(a):
-    if (('twilight' not in field_name[i])&('standard' not in field_name[i])):
+    if (('twilight' not in field_name[i]) & ('standard' not in field_name[i])):
         thar,thar_lines,thar_temperature,thar_exptime,thar_mjd = m2fs.get_thar(datadir,utdate[i],ccd,tharfile0[i],hires_exptime,
                                                                                medres_exptime,field_name[i],use_flat)
         stack_array_file = root2+'_stack_array.pickle'

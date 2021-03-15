@@ -13,9 +13,9 @@ from astropy.nddata import Cutout2D
 from astropy.nddata import NDDataRef
 import astropy.units as u
 from astropy.modeling import models
-from . import process as m2fs
-from . import utils
-from . import apertures as ap
+from m2fs import process as m2fs
+from m2fs import utils
+from m2fs import apertures as ap
 import os
 from os import path
 import specutils
@@ -39,7 +39,7 @@ from scipy import interpolate
 from astropy import time, coordinates as coord, units as u
 from astropy.coordinates import SkyCoord, EarthLocation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+from argparse import ArgumentParser
 
 shite = False
 trim = False  # define boundaries of useful spectral region
@@ -161,22 +161,22 @@ if __name__ == "__main__":
     #m2fsrun = '[enter_run_here]'
     #datadir = m2fs.get_datadir(m2fsrun)
 
-    edit_header_filename = []
-    edit_header_keyword = []
-    edit_header_value = []
-    with open(directory+'edit_headers') as f:
-        data = f.readlines()[0:]
-    for line in data:
-        p = line.split()
-        edit_header_filename.append(p[0])
-        edit_header_keyword.append(p[1])
-        edit_header_value.append(p[2])
-    edit_header_filename = np.array(edit_header_filename)
-    edit_header_keyword = np.array(edit_header_keyword)
-    edit_header_value = np.array(edit_header_value)
-    for i in range(0,len(edit_header_filename)):
-        print('editing header for ',edit_header_filename[i])
-        fits.setval(edit_header_filename[i]+'_stitched.fits',edit_header_keyword[i],value = edit_header_value[i])
+    #edit_header_filename = []
+    #edit_header_keyword = []
+    #edit_header_value = []
+    #with open(directory+'edit_headers') as f:
+    #    data = f.readlines()[0:]
+    #for line in data:
+    #    p = line.split()
+    #    edit_header_filename.append(p[0])
+    #    edit_header_keyword.append(p[1])
+    #    edit_header_value.append(p[2])
+    #edit_header_filename = np.array(edit_header_filename)
+    #edit_header_keyword = np.array(edit_header_keyword)
+    #edit_header_value = np.array(edit_header_value)
+    #for i in range(0,len(edit_header_filename)):
+    #    print('editing header for ',edit_header_filename[i])
+    #    fits.setval(edit_header_filename[i]+'_stitched.fits',edit_header_keyword[i],value = edit_header_value[i])
 
     # Load the list of science images
     utdate = []
@@ -282,14 +282,22 @@ if __name__ == "__main__":
             twilightstack_fits_exists = path.exists(twilightstack_fits_file)
             sky_target_check_exists = path.exists(sky_target_check_file)
 
+            import pdb; pdb.set_trace()
         
             if shite: ap.shite()
 
             if trim: ap.trim()
 
-            if initialize: ap.initialize()
+            if initialize:
+                ap.initialize(root,trace_step=trace_step,n_lines=n_lines,
+                              columnspec_continuum_rejection_low=columnspec_continuum_rejection_low,
+                              columnspec_continuum_rejection_high=columnspec_continuum_rejection_high,
+                              columnspec_continuum_rejection_iterations=columnspec_continuum_rejection_iterations,
+                              columnspec_continuum_rejection_order=columnspec_continuum_rejection_order,
+                              threshold_factor=threshold_factor,window=window,overwrite=overwrite)
 
-            if find: ap.find()
+            if find:
+                ap.find(root,window=window,overwrite=overwrite)
 
             if trace_all: ap.trace_all()
 
@@ -314,7 +322,7 @@ if __name__ == "__main__":
             
             if id_lines_translate: ap.id_lines_translate()
             
-            if plot_resolution: ap.plot_resolution)
+            if plot_resolution: ap.plot_resolution()
 
             if tharcheck: ap.tharcheck()
 
