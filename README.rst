@@ -13,13 +13,12 @@ Procedures
 
 Can always run many steps at the same time.
 
-1) Trim
--------
+**1) Trim**
 
 - set trim=True, everything else to False
 - set lower and upper boundaries interactively on quartz
 
-2) Initialize
+**2) Initialize**
    
 - set initialize=True, everything else to False
 - automatically finds the peaks, takes a while
