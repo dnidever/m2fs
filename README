@@ -1,6 +1,0 @@
-m2fs_zero_jan20.py
-m2fs_dark.py
-m2fs_reduce_jan20.py
-m2fs_apertures_jan20.py
-
-Run the above in that sequence.  All of them refer to m2fs_process.py
