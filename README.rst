@@ -14,6 +14,7 @@ Procedures
 Can always run many steps at the same time.
 
 1) Trim
+-------
 
 - set trim=True, everything else to False
 - set lower and upper boundaries interactively on quartz
