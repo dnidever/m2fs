@@ -11,18 +11,21 @@ Run the above in that sequence.  All of them refer to m2fs_process.py
 Procedures
 ----------
 
-Can always run many steps at the same time.
+- Can always run many steps at the same time.
+- The ``overwrite=True`` parameter sets whether any step will overwrite any existing data that it previously created.
 
 **1) Trim**
 
 - set trim=True, everything else to False
 - set lower and upper boundaries interactively on quartz
-
+- creates a _image_boundary.pickle file for each exposure
+  
 **2) Initialize**
    
 - set initialize=True, everything else to False
 - automatically finds the peaks, takes a while
 - fits gaussian profile for each peak
+- creates a _columnspec_array.pickle file for each exposure
 
 **3) Find**
    
@@ -35,7 +38,8 @@ Can always run many steps at the same time.
 - all fibers are plugged in the twilight exposure
 - need to deal with broken fibers as well
 - need to identify 128 apertures
-
+- creates a _apertures_profile_middle.pickle file
+  
 **4) Trace**
    
 - set trace_all=True, everything else to False
@@ -46,12 +50,14 @@ Can always run many steps at the same time.
 - there is code plot_trace() in m2fs_process.py
 - uncomment code in m2fs_process.py lines 932-945 to see/interact with traces, hit 'q' to go to next one
 - set make_image=True to get PSF of data+traces
-
+- creates a _aperture_array.pickle and _apertures2d.pdf if you set make_image=True
+  
 **5) apmask**
    
 - mask apertures
 - set apmask=True, everything else to False
 - automated, fairly fast
+- creates _apmask.pickle file
 
 **6) apflat**
    
@@ -59,7 +65,8 @@ Can always run many steps at the same time.
 - set apflat=True, everything else to False
 - automated
 - using quart spectra for flat fields
-
+- created _apflat.pickle and _apflat_residual.pickle files
+  
 **7) flat field correction**
    
 - apply flat field correction
