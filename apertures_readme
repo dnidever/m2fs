@@ -1,0 +1,44 @@
+m2fs_apertures_runID.py contains various modules for processing overscan/bias/dark/gain-corrected and stitched images to flat-corrected, wavelength-calibrated, throughput-corrected 1D spectra.
+
+Individual modules are turned on by changing [module name]=False to [module name]=True.  Module names are (excluding some non-essential ones that I wrote for internal sanity checks):
+
+trim: (interactive, operates on 'flat' calibration frame) allows user to draw left- and right-side boundaries of useful region, in order to regions corresponding to adjacent orders
+
+initialize: (not interactive, operates on 'flat' calibration frame) detects peaks along vertical (orthogonal to dispersion direction) slices, for use in finding apertures, fits Gaussian profile to detected peaks
+
+find: (interactive, operates on 'flat' calibration frame) uses results of initialize to display first guess at aperture identifications, allowing user to confirm and/or modify identified apertures.
+
+trace_all: (not interactive, operates on 'flat' calibration frame) traces apertures confirmed in previous step, fits function relating Gaussian perture profile to x value (roughly parallel to dispersion coordinate)
+
+apmask: (not interactive, operates on 'flat' calibration frame) uses measured aperture profile to identify and mask inter-aperture regions, also masks regions excluded in 'trim' step
+
+apflat: (not interactive, operates on 'flat', calibration frame) uses aperture profile as poor man's flat field (m2fs has no internal flat lamp) to construct flat-field frame. 
+
+apflatcorr: (not interactive, operates on 'flat', 'thar' calibration and 'sci' science frames) applies flat-field correction
+
+scatteredlightcorr: (not interactive, operates on 'flat' calibration and then on 'thar' calibration and 'sci' frames) fits smooth 2d function to inter-aperture regions of flattened 'flat' frame, then subtracts that fitted scattered light function from 'thar' and 'sci' frames
+
+extract1d_flat: (not interactive) performs 'pseudo'-optimal (it would become optimal in the ideal case in which dispersion axis is perfectly parallel to rows and lines are perfectly orthogonal to dispersion direction in 2d frames) extraction of 'flat' calibration frame to obtain 1D spectra.  
+
+extract1d_thar: same as above, but for 'thar' calibration frames
+extract1d_sci: same as above, but for 'sci' frames
+
+id_lines_template: (interactive) allows user to input wavelengths for individual lines in an extracted 'thar' calibration frame
+
+id_lines_translate: (not interactive) finds distortion function appropriate for translating template above to other ThAr spectra, determines which lines are identified and fits dispersion function
+
+wavcal: (not interactive) stores wavelength solution for every individual spectrum
+
+cr_reject: (not interactive) identifies CRs as high outliers with respect to continuum fit, flags them as bad pixels (note: this is appropriate only for absorption-line spectra, should not be applied to emission-line spectra)
+
+stack_twilight: (not interactive) stacks individual twilight sub-exposures taken during either evening/morning of a given night
+
+throughputcorr: (not interactive) uses the stacked twilight frames to determine and apply fiber throughput corrections (as function of wavelength)
+
+plugmap: (not interactive) reads fibermap file and stores target information associated with each aperture
+
+skysubtract: (not interactive) uses fibermap information to identify sky spectra, combines individual sky spectra to obtain mean sky spectrum and subtracts mean sky spectrum from individual spectra
+
+stack_frames: (not interactive) stacks science subexposures
+
+writefits: (not interactive) writes stacked science frames to fits files
