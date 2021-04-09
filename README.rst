@@ -98,7 +98,7 @@ ut20131123 0233 0241 0241 0239-0240-0236 Outer_LMC_Set3 0234-0235-0236-0237-0238
 - flat fielding
 - set apflat=True, everything else to False
 - automated
-- using quart spectra for flat fields
+- using quartz spectra for flat fields
 - created _apflat.pickle and _apflat_residual.pickle files
   
 **7) flat field correction**
@@ -106,7 +106,7 @@ ut20131123 0233 0241 0241 0239-0240-0236 Outer_LMC_Set3 0234-0235-0236-0237-0238
 - apply flat field correction
 - set apflatcorr=True
 - automated
-- can run at same tiem as apflat
+- can run at same time as apflat
 - creates _apflatcorr.pickle files
 - can inspect output pickle files
 
